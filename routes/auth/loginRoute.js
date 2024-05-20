@@ -38,10 +38,6 @@ router.post('/login', async(req, res) => {
                 token,
                 user
             }) 
-<<<<<<< HEAD
-        
-=======
->>>>>>> d99099c7a07264f89ef3c8ac107a27bbba90c806
 } catch(err) {
     console.log(err);
     res.status(500).json({msg: "Server Error"});

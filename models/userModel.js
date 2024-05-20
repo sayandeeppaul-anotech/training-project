@@ -7,11 +7,6 @@ const subordinateSchema = new mongoose.Schema({
   firstDeposit: { type: Number, default: 0 },
 }, { _id: false }); 
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> d99099c7a07264f89ef3c8ac107a27bbba90c806
 const userSchema = new mongoose.Schema({
   mobile: { type: Number, required: true },
   password: { type: String, required: true },
@@ -42,14 +37,10 @@ const userSchema = new mongoose.Schema({
       firstDeposit: 0
     }] 
   },
-<<<<<<< HEAD
-  lastLoginTime: { type: Date, default:null},
-=======
   lastLoginTime: { type: Date, default: null },
   
   // Added registration date field
   registrationDate: { type: Date, default: Date.now }, 
->>>>>>> d99099c7a07264f89ef3c8ac107a27bbba90c806
   token : {type: String, default: null},
   referrer: {
     type: mongoose.Schema.Types.ObjectId,
@@ -58,38 +49,17 @@ const userSchema = new mongoose.Schema({
   firstDepositMade: {
     type: Boolean,
     default: false
-<<<<<<< HEAD
-},
-commissionRecords: [{
-=======
   },
   commissionRecords: [{
->>>>>>> d99099c7a07264f89ef3c8ac107a27bbba90c806
     level: Number,
     commission: Number,
     date: Date,
     uid: String,
-<<<<<<< HEAD
-    betAmount:{type:  Number, default: 0},
-    depositAmount: Number
-}]
-  
-=======
     betAmount:{ type:  Number, default: 0 },
     depositAmount: Number
   }]
->>>>>>> d99099c7a07264f89ef3c8ac107a27bbba90c806
 });
 
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
-<<<<<<< HEAD
-
-
-
-
-
-
-=======
->>>>>>> d99099c7a07264f89ef3c8ac107a27bbba90c806
