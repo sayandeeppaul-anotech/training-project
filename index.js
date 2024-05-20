@@ -15,8 +15,13 @@ const walletRoute = require('./routes/wallet/walletRoute');
 const betRoute = require('./routes/wingo/wingoRoutes');
 const copyData = require('./controllers/copyCronJobControllers');
 const couponRoutes = require('./routes/common/coupenCodeRoute');
+<<<<<<< HEAD
 const transactions = require('./routes/wallet/TodaysRecharge')
 const userBalance = require('./routes/Admin/UserBalance')
+=======
+const todaysJoinee = require('./routes/users/userDetailsRoute')
+
+>>>>>>> d99099c7a07264f89ef3c8ac107a27bbba90c806
 
 // ----------------------------------------------------------------------------------------
 
@@ -31,8 +36,12 @@ app.use('/', logoutRoute);
 app.use('/', walletRoute);
 app.use('/', betRoute);
 app.use('/', couponRoutes);
+<<<<<<< HEAD
 app.use('/',transactions)
 app.use('/',userBalance)
+=======
+app.use('/',todaysJoinee)
+>>>>>>> d99099c7a07264f89ef3c8ac107a27bbba90c806
 
 
 db.connectDB();  

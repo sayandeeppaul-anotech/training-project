@@ -63,7 +63,13 @@ router.post('/register', async(req, res) => {
           uid: generateUID(),
           referralLink: generateRefferalLink(req),
           avatar: generateProfilePicture(req),
+<<<<<<< HEAD
           referrer: referrer ? referrer._id : null
+=======
+          referrer: referrer ? referrer._id : null,
+          // addTodaysCount:new Date.now(),
+
+>>>>>>> d99099c7a07264f89ef3c8ac107a27bbba90c806
       });
   
       await user.save();
