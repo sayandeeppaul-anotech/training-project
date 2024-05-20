@@ -4,14 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-<<<<<<< HEAD
-   "run":"node.index.js",
+   "start":"node.index.js",
    "dev":"nodemon index.js"
-=======
-    "start": "node index.js",
-    "dev": "nodemon index.js"
-
->>>>>>> d99099c7a07264f89ef3c8ac107a27bbba90c806
   },
   "author": "",
   "license": "ISC",
