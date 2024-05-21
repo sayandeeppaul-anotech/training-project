@@ -17,6 +17,7 @@ router.post("/wallet", auth, async (req, res) => {
       isFirstDeposit = true;
     }
     await req.user.save();
+
     const depositHistory = new DepositHistory({
       userId: req.user._id,
       depositAmount: amount,
@@ -131,7 +132,6 @@ router.get("/pending-recharge", auth, async (req, res) => {
 });
 
 
-
 router.get("/success-recharge", auth, async (req, res) => {
     try {
       const allDeposit = await DepositHistory.find();
@@ -163,6 +163,31 @@ router.get("/success-recharge", auth, async (req, res) => {
     } catch (err) {
       console.log(err);
       res.status(500).json({ msg: "Server Error" });
+    }
+  });
+
+
+  router.post('/attendance', auth, async (req, res) => {
+    try {
+      const totalDeposit = await DepositHistory.aggregate([
+        { $match: { userId: req.user._id } },
+        { $group: { _id: null, total: { $sum: "$depositAmount" } } }
+      ]);
+  
+      if (!totalDeposit[0] || totalDeposit[0].total < 10000) {
+        return res.status(400).json({ msg: 'You have not deposited enough to withdraw the daily bonus' });
+      }
+
+      if (req.user.lastBonusWithdrawal && new Date().setHours(0, 0, 0, 0) === new Date(req.user.lastBonusWithdrawal).setHours(0, 0, 0, 0)) {
+        return res.status(400).json({ msg: 'You have already withdrawn the daily bonus' });
+      }
+      req.user.walletAmount += 100;
+      req.user.lastBonusWithdrawal = Date.now();
+      await req.user.save();
+      res.json({ msg: 'Daily bonus withdrawn, 100 added to wallet' });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server Error');
     }
   });
 
