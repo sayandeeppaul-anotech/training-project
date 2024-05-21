@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require("../../models/userModel");
 const auth = require("../../middlewares/auth");
 const DepositHistory = require("../../models/depositHistoryModel");
+const commissionPercentage = require('../../models/commissionPercentage')
 
 router.post("/wallet", auth, async (req, res) => {
   try {
@@ -32,7 +33,18 @@ router.post("/wallet", auth, async (req, res) => {
     }
 
     let currentReferrer = await User.findById(req.user.referrer);
-    let commissionRates = [0.5, 0.4, 0.3, 0.2, 0.1];
+      const TotalPercentage = new commissionPercentage[leve1,level2,level3,level4,level5]
+      console.log(commissionPercentage)
+       TotalPercentage = new CommissionRecharge({
+        level1: level1,
+        level2: level2,
+        level3: level3,
+        level4: level4,
+        level5: level5
+    });
+    
+      
+
     for (let i = 0; i < 5; i++) {
       if (!currentReferrer) {
         break;

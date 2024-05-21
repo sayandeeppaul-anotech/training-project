@@ -18,7 +18,8 @@ const couponRoutes = require('./routes/common/coupenCodeRoute');
 const todaysJoinee = require('./routes/users/userDetailsRoute')
 const transactions = require('./routes/wallet/TodaysRecharge')
 const userBalance = require('./routes/Admin/UserBalance')
-
+const Subordinates = require('./routes/Admin/Subordinates')
+const levelAmount = require('./routes/Admin/CommissionPercentage')
 // ----------------------------------------------------------------------------------------
 
 
@@ -35,6 +36,8 @@ app.use('/', couponRoutes);
 app.use('/',todaysJoinee)
 app.use('/',transactions)
 app.use('/',userBalance)
+app.use('/',Subordinates)
+app.use('/',levelAmount)
 
 
 db.connectDB();  
