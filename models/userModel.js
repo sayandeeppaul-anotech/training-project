@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-
 const subordinateSchema = new mongoose.Schema(
   {
     noOfRegister: { type: Number, default: 0 },
@@ -72,6 +71,19 @@ const userSchema = new mongoose.Schema({
       uid: String,
       betAmount: { type: Number, default: 0 },
       depositAmount: Number,
+    },
+  ],
+  withdrawRecords: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Withdraw",
+      default: [
+        {
+          status: "NA",
+          balance: 0,
+          withdrawMethod: "",
+        },
+      ],
     },
   ],
 });

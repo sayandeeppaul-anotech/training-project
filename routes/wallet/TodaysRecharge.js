@@ -2,7 +2,7 @@ const DepositHistoryModel = require("../../models/depositHistoryModel");
 const express = require("express");
 const router = express.Router();
 
-router.get("/transactions", async (req, res) => {
+router.get("/transactions-last-24-hours", async (req, res) => {
   try {
     const twentyFourHours = new Date(new Date() - 24 * 60 * 60 * 1000);
     const recharge = await DepositHistoryModel.find({
