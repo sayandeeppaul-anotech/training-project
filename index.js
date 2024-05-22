@@ -18,18 +18,25 @@ const couponRoutes = require('./routes/common/coupenCodeRoute');
 const todaysJoinee = require('./routes/users/userDetailsRoute')
 const transactions = require('./routes/wallet/TodaysRecharge')
 const userBalance = require('./routes/Admin/UserBalance')
+const withdraw = require('./routes/Admin/withdrawRoute')
+const cors = require('cors')
 const Subordinates = require('./routes/Admin/Subordinates')
 const levelAmount = require('./routes/Admin/CommissionPercentage')
 const ChangePassword = require('./routes/ChangePassword/ChangePassword')
 const createNotification = require('./routes/Notification/AllUserNotification')
-const updateNotification = require('./routes/Notification/AllUserNotification')
 const getNotification = require('./routes/Notification/AllUserNotification')
+
+
+
+
 // ----------------------------------------------------------------------------------------
+
 
 
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(cors())
 app.use(logger);
 app.use('/', registerRoute);
 app.use('/', loginRoute);
@@ -44,8 +51,8 @@ app.use('/',Subordinates)
 app.use('/',levelAmount)
 app.use('/',ChangePassword)
 app.use('/',createNotification)
-app.use('/',updateNotification)
 app.use('/',getNotification)
+
 
 
 db.connectDB();  
@@ -55,13 +62,6 @@ copyData();
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://0.0.0.0:${PORT}`);
 });
-
-
-
-
-
-
-
 
 
 

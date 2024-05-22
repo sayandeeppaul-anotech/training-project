@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-
 const subordinateSchema = new mongoose.Schema(
   {
     noOfRegister: { type: Number, default: 0 },
@@ -25,6 +24,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ["Admin", "Normal", "Restricted"],
     // required: true,
+  },
+  lastBonusWithdrawal: {
+    type: Date,
+    default: null,
   },
   totalCommission: { type: Number, default: 0 },
   avatar: { type: String, default: null },
@@ -77,8 +80,20 @@ const userSchema = new mongoose.Schema({
   notification:[{
     type: mongoose.Schema.Types.ObjectId,
     ref: "notify"
-  }]
-
+  }],
+  withdrawRecords: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Withdraw",
+      default: [
+        {
+          status: "NA",
+          balance: 0,
+          withdrawMethod: "",
+        },
+      ],
+    },
+  ],
 });
 
 const User = mongoose.model("User", userSchema);

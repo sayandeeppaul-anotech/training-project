@@ -1,6 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../../models/userModel");
+const {
+  isAdmin,
+  isNormal,
+  isRestricted,
+} = require("../../middlewares/roleSpecificMiddleware");
 const auth = require("../../middlewares/auth");
 const DepositHistory = require("../../models/depositHistoryModel");
 const commissionPercentage = require('../../models/commissionPercentage')
@@ -18,6 +23,7 @@ router.post("/wallet", auth, async (req, res) => {
       isFirstDeposit = true;
     }
     await req.user.save();
+
     const depositHistory = new DepositHistory({
       userId: req.user._id,
       depositAmount: amount,
@@ -98,7 +104,7 @@ router.post("/wallet", auth, async (req, res) => {
   }
 });
 
-router.get("/deposit/history", auth, async (req, res) => {
+router.get("/deposit/history", auth, isAdmin, async (req, res) => {
   try {
     const depositHistory = await DepositHistory.find({ userId: req.user._id });
     res.status(200).json(depositHistory);
@@ -108,7 +114,7 @@ router.get("/deposit/history", auth, async (req, res) => {
   }
 });
 
-router.get("/pending-recharge", auth, async (req, res) => {
+router.get("/pending-recharge", auth, isAdmin, async (req, res) => {
   try {
     const allDeposit = await DepositHistory.find();
     if (!allDeposit) {
@@ -141,40 +147,62 @@ router.get("/pending-recharge", auth, async (req, res) => {
     res.status(500).json({ msg: "Server Error" });
   }
 });
-
-
-
-router.get("/success-recharge", auth, async (req, res) => {
-    try {
-      const allDeposit = await DepositHistory.find();
-      if (!allDeposit) {
-        console.log("No user found in the DB");
-      }
-      let successRechargeArray = [];
-      successRechargeArray = allDeposit.filter(
-        (deposit) => deposit.depositStatus === "completed"
-      );
-      console.log(successRechargeArray);
-      if (successRechargeArray.length === 0) {
-        res.status(200).json({
-          successRechargeAmount: 0,
-          success: true,
-          message: "No success recharge done yet",
-        });
-      }
-      let totalSuccessAmount = 0;
-      for (let i = 0; i < successRechargeArray.length; i++) {
-        totalSuccessAmount =
-        totalSuccessAmount + successRechargeArray[i].depositAmount;
-      }
+router.get("/success-recharge", auth, isAdmin, async (req, res) => {
+  try {
+    const allDeposit = await DepositHistory.find();
+    if (!allDeposit) {
+      console.log("No user found in the DB");
+    }
+    let successRechargeArray = [];
+    successRechargeArray = allDeposit.filter(
+      (deposit) => deposit.depositStatus === "completed"
+    );
+    console.log(successRechargeArray);
+    if (successRechargeArray.length === 0) {
       res.status(200).json({
-        successAmount: totalSuccessAmount,
+        successRechargeAmount: 0,
         success: true,
-        message: "data fetched succesfully",
+        message: "No success recharge done yet",
       });
+    }
+    let totalSuccessAmount = 0;
+    for (let i = 0; i < successRechargeArray.length; i++) {
+      totalSuccessAmount =
+        totalSuccessAmount + successRechargeArray[i].depositAmount;
+    }
+    res.status(200).json({
+      successAmount: totalSuccessAmount,
+      success: true,
+      message: "data fetched succesfully",
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: "Server Error" });
+  }
+});
+
+
+  router.post('/attendance', auth, async (req, res) => {
+    try {
+      const totalDeposit = await DepositHistory.aggregate([
+        { $match: { userId: req.user._id } },
+        { $group: { _id: null, total: { $sum: "$depositAmount" } } }
+      ]);
+  
+      if (!totalDeposit[0] || totalDeposit[0].total < 10000) {
+        return res.status(400).json({ msg: 'You have not deposited enough to withdraw the daily bonus' });
+      }
+
+      if (req.user.lastBonusWithdrawal && new Date().setHours(0, 0, 0, 0) === new Date(req.user.lastBonusWithdrawal).setHours(0, 0, 0, 0)) {
+        return res.status(400).json({ msg: 'You have already withdrawn the daily bonus' });
+      }
+      req.user.walletAmount += 100;
+      req.user.lastBonusWithdrawal = Date.now();
+      await req.user.save();
+      res.json({ msg: 'Daily bonus withdrawn, 100 added to wallet' });
     } catch (err) {
-      console.log(err);
-      res.status(500).json({ msg: "Server Error" });
+      console.error(err.message);
+      res.status(500).send('Server Error');
     }
   });
 
