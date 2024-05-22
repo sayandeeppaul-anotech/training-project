@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema({
     enum: ["Admin", "Normal", "Restricted"],
     // required: true,
   },
+  lastBonusWithdrawal: {
+    type: Date,
+    default: null,
+  },
   totalCommission: { type: Number, default: 0 },
   avatar: { type: String, default: null },
   token: { type: String, default: null },

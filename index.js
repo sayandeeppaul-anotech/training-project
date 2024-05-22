@@ -20,7 +20,14 @@ const transactions = require('./routes/wallet/TodaysRecharge')
 const userBalance = require('./routes/Admin/UserBalance')
 const withdraw = require('./routes/Admin/withdrawRoute')
 const cors = require('cors')
+const Subordinates = require('./routes/Admin/Subordinates')
+const levelAmount = require('./routes/Admin/CommissionPercentage')
+
+
+
+
 // ----------------------------------------------------------------------------------------
+
 
 
 
@@ -36,10 +43,10 @@ app.use('/', betRoute);
 app.use('/', couponRoutes);
 app.use('/',todaysJoinee)
 app.use('/',transactions)
-// app.use('/',userBalance)
+app.use('/',userBalance)
+app.use('/',Subordinates)
+app.use('/',levelAmount)
 app.use('/',withdraw)
-
-
 
 db.connectDB();  
 setupWebSocket(server);
@@ -48,13 +55,6 @@ copyData();
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://0.0.0.0:${PORT}`);
 });
-
-
-
-
-
-
-
 
 
 

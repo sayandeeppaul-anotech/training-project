@@ -8,6 +8,7 @@ const {
 } = require("../../middlewares/roleSpecificMiddleware");
 const auth = require("../../middlewares/auth");
 const DepositHistory = require("../../models/depositHistoryModel");
+const commissionPercentage = require('../../models/commissionPercentage')
 
 router.post("/wallet", auth, async (req, res) => {
   try {
@@ -22,6 +23,7 @@ router.post("/wallet", auth, async (req, res) => {
       isFirstDeposit = true;
     }
     await req.user.save();
+
     const depositHistory = new DepositHistory({
       userId: req.user._id,
       depositAmount: amount,
@@ -37,7 +39,18 @@ router.post("/wallet", auth, async (req, res) => {
     }
 
     let currentReferrer = await User.findById(req.user.referrer);
-    let commissionRates = [0.5, 0.4, 0.3, 0.2, 0.1];
+      const TotalPercentage = new commissionPercentage[leve1,level2,level3,level4,level5]
+      console.log(commissionPercentage)
+       TotalPercentage = new CommissionRecharge({
+        level1: level1,
+        level2: level2,
+        level3: level3,
+        level4: level4,
+        level5: level5
+    });
+    
+      
+
     for (let i = 0; i < 5; i++) {
       if (!currentReferrer) {
         break;
@@ -134,7 +147,6 @@ router.get("/pending-recharge", auth, isAdmin, async (req, res) => {
     res.status(500).json({ msg: "Server Error" });
   }
 });
-
 router.get("/success-recharge", auth, isAdmin, async (req, res) => {
   try {
     const allDeposit = await DepositHistory.find();
@@ -168,5 +180,30 @@ router.get("/success-recharge", auth, isAdmin, async (req, res) => {
     res.status(500).json({ msg: "Server Error" });
   }
 });
+
+
+  router.post('/attendance', auth, async (req, res) => {
+    try {
+      const totalDeposit = await DepositHistory.aggregate([
+        { $match: { userId: req.user._id } },
+        { $group: { _id: null, total: { $sum: "$depositAmount" } } }
+      ]);
+  
+      if (!totalDeposit[0] || totalDeposit[0].total < 10000) {
+        return res.status(400).json({ msg: 'You have not deposited enough to withdraw the daily bonus' });
+      }
+
+      if (req.user.lastBonusWithdrawal && new Date().setHours(0, 0, 0, 0) === new Date(req.user.lastBonusWithdrawal).setHours(0, 0, 0, 0)) {
+        return res.status(400).json({ msg: 'You have already withdrawn the daily bonus' });
+      }
+      req.user.walletAmount += 100;
+      req.user.lastBonusWithdrawal = Date.now();
+      await req.user.save();
+      res.json({ msg: 'Daily bonus withdrawn, 100 added to wallet' });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server Error');
+    }
+  });
 
 module.exports = router;
