@@ -74,6 +74,11 @@ const userSchema = new mongoose.Schema({
       depositAmount: Number,
     },
   ],
+  notification:[{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "notify"
+  }]
+
 });
 
 const User = mongoose.model("User", userSchema);
