@@ -77,10 +77,12 @@ const userSchema = new mongoose.Schema({
       depositAmount: Number,
     },
   ],
-  notification:[{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "notify"
-  }],
+  notification: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "notify",
+    },
+  ],
   withdrawRecords: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -94,6 +96,12 @@ const userSchema = new mongoose.Schema({
       ],
     },
   ],
+  achievements: [
+    {
+      type: String
+    }
+  ]
+
 });
 
 const User = mongoose.model("User", userSchema);

@@ -20,12 +20,10 @@ const transactions = require('./routes/wallet/TodaysRecharge')
 const userBalance = require('./routes/Admin/UserBalance')
 const withdraw = require('./routes/Admin/withdrawRoute')
 const cors = require('cors')
-const Subordinates = require('./routes/Admin/Subordinates')
-const levelAmount = require('./routes/Admin/CommissionPercentage')
 const ChangePassword = require('./routes/ChangePassword/ChangePassword')
 const createNotification = require('./routes/Notification/AllUserNotification')
 const getNotification = require('./routes/Notification/AllUserNotification')
-
+const commission = require('./routes/Admin/commisionRoute')
 
 
 
@@ -47,12 +45,11 @@ app.use('/', couponRoutes);
 app.use('/',todaysJoinee)
 app.use('/',transactions)
 app.use('/',userBalance)
-app.use('/',Subordinates)
-app.use('/',levelAmount)
 app.use('/',ChangePassword)
 app.use('/',createNotification)
 app.use('/',getNotification)
-
+app.use('/',withdraw)
+app.use('/',commission)
 
 
 db.connectDB();  

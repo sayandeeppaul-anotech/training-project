@@ -7,8 +7,9 @@ const {
   isRestricted,
 } = require("../../middlewares/roleSpecificMiddleware");
 const auth = require("../../middlewares/auth");
-const DepositHistory = require("../../models/depositHistoryModel");
-const commissionPercentage = require('../../models/commissionPercentage')
+const Deposit = require("../../models/depositHistoryModel");
+const Commission = require("../../models/commissionModel");
+const MainLevelModel = require("../../models/levelSchema");
 
 router.post("/wallet", auth, async (req, res) => {
   try {
@@ -16,7 +17,52 @@ router.post("/wallet", auth, async (req, res) => {
     if (!amount) {
       return res.status(400).json({ msg: "Amount is required" });
     }
+    const userId = req.user._id;
+
+    const mainLevelConfig = await MainLevelModel.findOne();
+    if (
+      !mainLevelConfig ||
+      !mainLevelConfig.levels ||
+      mainLevelConfig.levels.length === 0
+    ) {
+      console.log(
+        "No commission level is set up yet to claim the reward amount"
+      );
+      return res
+        .status(500)
+        .json({ msg: "Commission levels configuration not found" });
+    }
+    const { levels } = mainLevelConfig;
+    console.log(levels);
+    const depositDetails = await Deposit.find({ userId: userId });
+    console.log("deposit details---------------->", depositDetails);
+    const totalPrevDepositAmount = depositDetails.reduce(
+      (total, depositEntry) => {
+        return total + depositEntry.depositAmount;
+      },
+      0
+    );
+
+    let totalDeposit = totalPrevDepositAmount + amount;
+    console.log(`Total deposit amount: ${totalDeposit}`);
+    levels.forEach((level, index) => {
+      const prevLevelAmount = index > 0 ? levels[index - 1].minAmount : 0;
+      if (
+        totalDeposit >= level.minAmount &&
+        totalPrevDepositAmount < level.minAmount &&
+        totalPrevDepositAmount >= prevLevelAmount &&
+        !req.user.achievements.includes(level.awarded)
+      ) {
+        req.user.walletAmount += level.bonusAmount;
+
+        req.user.achievements.push(level.awarded);
+
+        console.log(`Bonus for reaching level ${index + 1} added successfully`);
+      }
+    });
     req.user.walletAmount += amount;
+    await req.user.save();
+
     let isFirstDeposit = false;
     if (!req.user.firstDepositMade) {
       req.user.firstDepositMade = true;
@@ -24,7 +70,7 @@ router.post("/wallet", auth, async (req, res) => {
     }
     await req.user.save();
 
-    const depositHistory = new DepositHistory({
+    const depositHistory = new Deposit({
       userId: req.user._id,
       depositAmount: amount,
       depositDate: new Date(),
@@ -39,18 +85,14 @@ router.post("/wallet", auth, async (req, res) => {
     }
 
     let currentReferrer = await User.findById(req.user.referrer);
-      const TotalPercentage = new commissionPercentage[leve1,level2,level3,level4,level5]
-      console.log(commissionPercentage)
-       TotalPercentage = new CommissionRecharge({
-        level1: level1,
-        level2: level2,
-        level3: level3,
-        level4: level4,
-        level5: level5
-    });
-    
-      
 
+    const commisionRates = await Commission.find();
+    let level1 = commisionRates[0].level1;
+    let level2 = commisionRates[0].level2;
+    let level3 = commisionRates[0].level3;
+    let level4 = commisionRates[0].level4;
+    let level5 = commisionRates[0].level5;
+    let commissionRates = [level1, level2, level3, level4, level5];
     for (let i = 0; i < 5; i++) {
       if (!currentReferrer) {
         break;
@@ -181,29 +223,36 @@ router.get("/success-recharge", auth, isAdmin, async (req, res) => {
   }
 });
 
+router.post("/attendance", auth, async (req, res) => {
+  try {
+    const totalDeposit = await DepositHistory.aggregate([
+      { $match: { userId: req.user._id } },
+      { $group: { _id: null, total: { $sum: "$depositAmount" } } },
+    ]);
 
-  router.post('/attendance', auth, async (req, res) => {
-    try {
-      const totalDeposit = await DepositHistory.aggregate([
-        { $match: { userId: req.user._id } },
-        { $group: { _id: null, total: { $sum: "$depositAmount" } } }
-      ]);
-  
-      if (!totalDeposit[0] || totalDeposit[0].total < 10000) {
-        return res.status(400).json({ msg: 'You have not deposited enough to withdraw the daily bonus' });
-      }
-
-      if (req.user.lastBonusWithdrawal && new Date().setHours(0, 0, 0, 0) === new Date(req.user.lastBonusWithdrawal).setHours(0, 0, 0, 0)) {
-        return res.status(400).json({ msg: 'You have already withdrawn the daily bonus' });
-      }
-      req.user.walletAmount += 100;
-      req.user.lastBonusWithdrawal = Date.now();
-      await req.user.save();
-      res.json({ msg: 'Daily bonus withdrawn, 100 added to wallet' });
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server Error');
+    if (!totalDeposit[0] || totalDeposit[0].total < 10000) {
+      return res.status(400).json({
+        msg: "You have not deposited enough to withdraw the daily bonus",
+      });
     }
-  });
+
+    if (
+      req.user.lastBonusWithdrawal &&
+      new Date().setHours(0, 0, 0, 0) ===
+        new Date(req.user.lastBonusWithdrawal).setHours(0, 0, 0, 0)
+    ) {
+      return res
+        .status(400)
+        .json({ msg: "You have already withdrawn the daily bonus" });
+    }
+    req.user.walletAmount += 100;
+    req.user.lastBonusWithdrawal = Date.now();
+    await req.user.save();
+    res.json({ msg: "Daily bonus withdrawn, 100 added to wallet" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
 
 module.exports = router;
