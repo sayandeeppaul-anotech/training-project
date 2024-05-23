@@ -39,7 +39,7 @@ router.post("/wallet", auth, async (req, res) => {
     }
 
     let currentReferrer = await User.findById(req.user.referrer);
-      const TotalPercentage = new commissionPercentage[leve1,level2,level3,level4,level5]
+      const TotalPercentage = new commissionPercentage[level1,level2,level3,level4,level5]
       console.log(commissionPercentage)
        TotalPercentage = new CommissionRecharge({
         level1: level1,

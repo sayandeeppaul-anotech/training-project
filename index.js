@@ -25,7 +25,8 @@ const levelAmount = require('./routes/Admin/CommissionPercentage')
 const ChangePassword = require('./routes/ChangePassword/ChangePassword')
 const createNotification = require('./routes/Notification/AllUserNotification')
 const getNotification = require('./routes/Notification/AllUserNotification')
-
+const savings = require('./routes/wallet/SavingsAmount')
+const getSavings = require('./routes/wallet/SavingsAmount')
 
 
 
@@ -52,6 +53,8 @@ app.use('/',levelAmount)
 app.use('/',ChangePassword)
 app.use('/',createNotification)
 app.use('/',getNotification)
+app.use('/',savings)
+app.use('/',getSavings)
 
 
 

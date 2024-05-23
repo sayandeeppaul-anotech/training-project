@@ -7,7 +7,6 @@ const User = require('../../models/userModel')
 
 
 ////// Create message for all users //////////////////
-
 router.post('/createNotification', auth, isAdmin, async (req, res) => {
     try {
         const { title, message } = req.body;
@@ -44,56 +43,6 @@ router.post('/createNotification', auth, isAdmin, async (req, res) => {
     }
 });
 
-
-// //// updating message ///
-// router.put('/UpdateNotification', auth, isAdmin, async (req, res) => {
-//     try {
-//         const { title, message } = req.body;
-
-//         // Create a new notification document
-//         const latestNotification = await Notification.findOne()
-
-//         if (!latestNotification) {
-//             return res.status(404).json({
-//                 success: false,
-//                 message: "No notifications found"
-//             });
-//         }
-
-//         // Update the latest notification
-//         latestNotification.title = title;
-//         latestNotification.message = message;
-//         latestNotification.date = new Date();
-
-//         await latestNotification.save();
-
-//         // Create a new notification object with the updated content
-//         const updatedNotification = {
-//             _id: latestNotification._id,
-//             title: latestNotification.title,
-//             message: latestNotification.message,
-//             date: latestNotification.date
-//         };
-
-//         // Update notifications in User collection for all users
-//         const updateResult = await User.updateMany(
-//             {},
-//             { $push: { notifications: updatedNotification } }
-//         );
-
-//         // Respond to the client
-//         res.status(200).json({
-//             success: true,
-//             message: "Notification updated successfully!"
-//         });
-//     } catch (error) {
-//         console.error(error);  // Logs the error object to the console
-//         res.status(500).json({
-//             success: false,
-//             message: "Internal server error occurred while updating the notification."
-//         });
-//     }
-// });
 
 
 ////// get notification from Admin //////

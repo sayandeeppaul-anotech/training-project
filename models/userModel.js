@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema({
   uid: { type: String, required: true },
   referralLink: { type: String, default: null },
   walletAmount: { type: Number, default: 0 },
+  
 
   // ++++++++++++++++++++++++++++++++ sayandeep added ++++++++++++++++++++++++++++++++++++++++++++
   accountType: {
