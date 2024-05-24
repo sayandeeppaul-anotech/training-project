@@ -30,5 +30,4 @@ router.use('/', ChangePassword);
 router.use('/', createNotification); 
 router.use('/', getNotification);
 router.use('/', commission);
-
 module.exports = router;
