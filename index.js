@@ -18,13 +18,16 @@ const couponRoutes = require('./routes/common/coupenCodeRoute');
 const todaysJoinee = require('./routes/users/userDetailsRoute')
 const transactions = require('./routes/wallet/TodaysRecharge')
 const userBalance = require('./routes/Admin/UserBalance')
+const withdraw = require('./routes/Admin/withdrawRoute')
+const cors = require('cors')
 const Subordinates = require('./routes/Admin/Subordinates')
 const levelAmount = require('./routes/Admin/CommissionPercentage')
 const cron = require('node-cron');
 const moment = require('moment');
 const Salary = require('./models/salaryModel');
 const User = require('./models/userModel');
-
+const manageUsers = require('./routes/Admin/manageUsersRoute')
+const practice = require('./routes/common/practice')
 
 
 
@@ -35,6 +38,7 @@ const User = require('./models/userModel');
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(cors())
 app.use(logger);
 app.use('/', registerRoute);
 app.use('/', loginRoute);
@@ -47,6 +51,9 @@ app.use('/',transactions)
 app.use('/',userBalance)
 app.use('/',Subordinates)
 app.use('/',levelAmount)
+app.use('/',withdraw)
+app.use('/',manageUsers)
+app.use('/',practice)
 
 
 db.connectDB();  

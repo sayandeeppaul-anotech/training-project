@@ -3,6 +3,7 @@ const CommissionPercentage = require('../../models/commissionPercentage')
 const router = express.Router()
 const auth = require('../../middlewares/auth')
 const {isAdmin} = require('../../middlewares/roleSpecificMiddleware')
+const SalaryController = require('../../controllers/salaryController');
 
 router.post('/levelAmount',auth,isAdmin,async(req,res)=>{
     try {
@@ -32,4 +33,18 @@ router.post('/levelAmount',auth,isAdmin,async(req,res)=>{
     }
 })
 
+
+router.post('/addSalary', async (req, res) => {
+    try {
+        const { uid, salaryAmount, salaryFrequency, nextPaymentDate, frequencyLimit } = req.body;
+        await SalaryController.createSalary(uid, salaryAmount, salaryFrequency, nextPaymentDate, frequencyLimit);
+        res.status(200).json({ message: 'Salary added successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error adding salary', error });
+    }
+});
+
+
 module.exports = router
+
+

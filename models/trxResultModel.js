@@ -12,3 +12,8 @@ const GameResult = mongoose.model('TrxGameResult', new mongoose.Schema({
 }));
 
 module.exports = GameResult;
+
+
+
+
+

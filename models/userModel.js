@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
-
 const subordinateSchema = new mongoose.Schema(
+  
   {
     noOfRegister: { type: Number, default: 0 },
     depositNumber: { type: Number, default: 0 },
@@ -83,3 +83,7 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;
+
+
+
+
