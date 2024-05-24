@@ -32,7 +32,7 @@ const scheduleYearlyUpdate = () => {
         console.log('User found:', user);
 
         if (user) {
-          user.walletAmount += interest; // Update the walletAmount field
+          user.walletAmount += interest; 
           await user.save();
           console.log(`Wallet amount updated for user ${user._id}: ${user.walletAmount}`);
         }
