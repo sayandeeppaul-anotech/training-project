@@ -10,6 +10,8 @@ const auth = require("../../middlewares/auth");
 const Deposit = require("../../models/depositHistoryModel");
 const Commission = require("../../models/commissionModel");
 const MainLevelModel = require("../../models/levelSchema");
+const {addTransactionDetails} = require('../../controllers/TransactionHistoryControllers')
+
 
 router.post("/wallet", auth, async (req, res) => {
   try {
@@ -79,24 +81,21 @@ router.post("/wallet", auth, async (req, res) => {
       depositMethod: "some-method",
     });
     await depositHistory.save();
+    addTransactionDetails(amount,"deposit", new Date())
 
     if (!req.user.referrer) {
       return res.status(200).json({ msg: "Wallet updated" });
     }
 
     let currentReferrer = await User.findById(req.user.referrer);
-      const TotalPercentage = new commissionPercentage[level1,level2,level3,level4,level5]
-      console.log(commissionPercentage)
-       TotalPercentage = new CommissionRecharge({
-        level1: level1,
-        level2: level2,
-        level3: level3,
-        level4: level4,
-        level5: level5
-    });
-    
-      
 
+    const commisionRates = await Commission.find();
+    let level1 = commisionRates[0].level1;
+    let level2 = commisionRates[0].level2;
+    let level3 = commisionRates[0].level3;
+    let level4 = commisionRates[0].level4;
+    let level5 = commisionRates[0].level5;
+    let commissionRates = [level1, level2, level3, level4, level5];
     for (let i = 0; i < 5; i++) {
       if (!currentReferrer) {
         break;
@@ -152,7 +151,8 @@ router.post("/wallet", auth, async (req, res) => {
 
 router.get("/deposit/history", auth, isAdmin, async (req, res) => {
   try {
-    const depositHistory = await DepositHistory.find({ userId: req.user._id });
+    const depositHistory = await Deposit.find();
+    console.log("------------->",depositHistory)
     res.status(200).json(depositHistory);
   } catch (err) {
     console.log(err);
@@ -162,7 +162,7 @@ router.get("/deposit/history", auth, isAdmin, async (req, res) => {
 
 router.get("/pending-recharge", auth, isAdmin, async (req, res) => {
   try {
-    const allDeposit = await DepositHistory.find();
+    const allDeposit = await Deposit.find();
     if (!allDeposit) {
       console.log("No user found in the DB");
     }
@@ -195,7 +195,7 @@ router.get("/pending-recharge", auth, isAdmin, async (req, res) => {
 });
 router.get("/success-recharge", auth, isAdmin, async (req, res) => {
   try {
-    const allDeposit = await DepositHistory.find();
+    const allDeposit = await Deposit.find();
     if (!allDeposit) {
       console.log("No user found in the DB");
     }

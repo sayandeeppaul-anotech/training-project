@@ -32,6 +32,7 @@ router.post(
   isAdmin,
   withdrawAcceptanceController
 );
+
 router.get(
   "/total-withdraw-request-amount",
   auth,
@@ -45,5 +46,6 @@ router.get(
   isAdmin,
   getTotalWithdrawAmountLast24Hours
 );
+
 
 module.exports = router;

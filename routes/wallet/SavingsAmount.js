@@ -45,6 +45,7 @@ router.post("/Savings", auth, async (req, res) => {
         });
     }
     await savings.save();
+    addTransactionDetails(amount,"savings deposit", new Date())
 
     res.status(200).json({
         success: true,

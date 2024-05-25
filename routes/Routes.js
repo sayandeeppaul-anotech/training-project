@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
 const registerRoute = require('../routes/auth/registerRoute');
@@ -15,6 +15,13 @@ const ChangePassword = require('../routes/ChangePassword/ChangePassword');
 const createNotification = require('../routes/Notification/AllUserNotification');
 const getNotification = require('../routes/Notification/AllUserNotification');
 const commission = require('../routes/Admin/commisionRoute');
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+const CreateAddress = require('./Admin/TRX-Address')
+const UpdateAddress = require('./Admin/TRX-Address')
+const getAddresses = require('./Admin/TRX-Address')
+const UPIAddress = require('./Admin/UPIAddress')
+const UpdateUPI = require('./Admin/UPIAddress')
+const Getid = require('./Admin/UPIAddress')
 
 router.use('/', registerRoute);
 router.use('/', loginRoute);
@@ -30,4 +37,12 @@ router.use('/', ChangePassword);
 router.use('/', createNotification); 
 router.use('/', getNotification);
 router.use('/', commission);
+///////////////////////////////////////////////////////////
+router.use('/', CreateAddress)
+router.use('/', UpdateAddress)
+router.use('/', getAddresses)
+router.use('/',UPIAddress)
+router.use('/',UpdateUPI)
+router.use('/',Getid)
+
 module.exports = router;

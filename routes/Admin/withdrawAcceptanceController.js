@@ -1,5 +1,6 @@
 const Withdraw = require("../../models/withdrawModel");
 const User = require("../../models/userModel");
+const {addTransactionDetails} = require('../../controllers/TransactionHistoryControllers')
 
 exports.withdrawAcceptanceController = async (req, res) => {
   try {
@@ -39,8 +40,12 @@ exports.withdrawAcceptanceController = async (req, res) => {
       }
 
       // Deduct the balance from the user's wallet
+      const WithdrawAmount = updatedRequest.balance
+      console.log("----------------------->",WithdrawAmount)
       user.walletAmount -= updatedRequest.balance;
       await user.save();
+      addTransactionDetails(WithdrawAmount,"Withdraw")
+
     }
 
     res.status(200).json({
