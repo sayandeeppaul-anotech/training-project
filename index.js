@@ -10,7 +10,7 @@ const { setupWebSocket } = require("./websockets/websocket");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const routes = require("./routes/Routes");
-const copyData = require("./controllers/copyCronJobControllers");
+// const copyData = require("./controllers/copyCronJobControllers");
 
 // ----------------------------------------------------------------------------------------
 
@@ -22,7 +22,7 @@ app.use(routes);
 
 db.connectDB();
 setupWebSocket(server);
-copyData();
+// copyData();
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running at http://0.0.0.0:${PORT}`);

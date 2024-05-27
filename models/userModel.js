@@ -1,73 +1,43 @@
 const mongoose = require("mongoose");
+
 const subordinateSchema = new mongoose.Schema(
   {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     noOfRegister: { type: Number, default: 0 },
     depositNumber: { type: Number, default: 0 },
     depositAmount: { type: Number, default: 0 },
     firstDeposit: { type: Number, default: 0 },
+    date: { type: Date, default: Date.now },
+    parentReferrer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    level: { type: Number, default: 1 }
   },
   { _id: false }
 );
 
 const userSchema = new mongoose.Schema({
-  mobile: { type: Number, required: true },
+  mobile: { type: Number, required: true, unique: true },
   password: { type: String, required: true },
   invitecode: { type: String, default: null },
-  invitationCode: { type: String, required: true },
+  invitationCode: { type: String, required: true, unique: true },
   username: { type: String, required: true },
-  uid: { type: String, required: true },
+  uid: { type: String, required: true, unique: true },
   referralLink: { type: String, default: null },
   walletAmount: { type: Number, default: 0 },
-  
-
-  // ++++++++++++++++++++++++++++++++ sayandeep added ++++++++++++++++++++++++++++++++++++++++++++
   accountType: {
     type: String,
     enum: ["Admin", "Normal", "Restricted"],
-    // required: true,
+    default: "Normal"
   },
-  lastBonusWithdrawal: {
-    type: Date,
-    default: null,
-  },
+  lastBonusWithdrawal: { type: Date, default: null },
   totalCommission: { type: Number, default: 0 },
   avatar: { type: String, default: null },
   token: { type: String, default: null },
-  directSubordinates: {
-    type: [subordinateSchema],
-    default: [
-      {
-        noOfRegister: 0,
-        depositNumber: 0,
-        depositAmount: 0,
-        firstDeposit: 0,
-      },
-    ],
-  },
-  teamSubordinates: {
-    type: [subordinateSchema],
-    default: [
-      {
-        noOfRegister: 0,
-        depositNumber: 0,
-        depositAmount: 0,
-        firstDeposit: 0,
-      },
-    ],
-  },
+  directSubordinates: [subordinateSchema],
+  teamSubordinates: [subordinateSchema],
   lastLoginTime: { type: Date, default: null },
-
-  // Added registration date field
   registrationDate: { type: Date, default: Date.now },
-  token: { type: String, default: null },
-  referrer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-  },
-  firstDepositMade: {
-    type: Boolean,
-    default: false,
-  },
+  referrer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  firstDepositMade: { type: Boolean, default: false },
   commissionRecords: [
     {
       level: Number,
@@ -75,14 +45,14 @@ const userSchema = new mongoose.Schema({
       date: Date,
       uid: String,
       betAmount: { type: Number, default: 0 },
-      depositAmount: Number,
-    },
+      depositAmount: Number
+    }
   ],
   notification: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "notify",
-    },
+      ref: "notify"
+    }
   ],
   withdrawRecords: [
     {
@@ -92,17 +62,12 @@ const userSchema = new mongoose.Schema({
         {
           status: "NA",
           balance: 0,
-          withdrawMethod: "",
-        },
-      ],
-    },
-  ],
-  achievements: [
-    {
-      type: String
+          withdrawMethod: ""
+        }
+      ]
     }
-  ]
-
+  ],
+  achievements: [String]
 });
 
 const User = mongoose.model("User", userSchema);
