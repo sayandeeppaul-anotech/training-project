@@ -1,17 +1,19 @@
 // controllers/transactionController.js
 const TransactionModel = require('../models/TransictionHistory');
 const express = require('express')
-
-exports.addTransactionDetails = async (amount,type,time) => {
+const userId = require('../models/TransictionHistory')
+exports.addTransactionDetails = async (userId,amount,type,time) => {
   try {
-    console.log(".....>",amount,type,time)
+    console.log('....> func called')
+    const user = userId
+    console.log(".....>", userId,amount,type,time)
     const newTransaction = new TransactionModel({
+      user,
       amount,
       type,
       time
     });
     console.log(".....>",newTransaction)
-    // Save the transaction to the database
     await newTransaction.save();
 
   } catch (error) {

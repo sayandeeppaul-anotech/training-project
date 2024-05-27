@@ -44,7 +44,7 @@ exports.withdrawAcceptanceController = async (req, res) => {
       console.log("----------------------->",WithdrawAmount)
       user.walletAmount -= updatedRequest.balance;
       await user.save();
-      addTransactionDetails(WithdrawAmount,"Withdraw")
+      addTransactionDetails(user,WithdrawAmount,"Withdraw")
 
     }
 

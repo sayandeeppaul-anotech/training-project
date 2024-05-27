@@ -22,6 +22,10 @@ const getAddresses = require('./Admin/TRX-Address')
 const UPIAddress = require('./Admin/UPIAddress')
 const UpdateUPI = require('./Admin/UPIAddress')
 const Getid = require('./Admin/UPIAddress')
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+const transaction = require('./Admin/TransactionHistoryRoute')
+const Savings = require('./wallet/SavingsAmount')
+const ShowSavings = require('./wallet/SavingsAmount')
 
 router.use('/', registerRoute);
 router.use('/', loginRoute);
@@ -44,5 +48,9 @@ router.use('/', getAddresses)
 router.use('/',UPIAddress)
 router.use('/',UpdateUPI)
 router.use('/',Getid)
+
+router.use('/',transaction)
+router.use('/',Savings)
+router.use('/',ShowSavings)
 
 module.exports = router;

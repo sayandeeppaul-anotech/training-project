@@ -4,13 +4,15 @@ const Savings = require("../../models/SavingsAmount");
 const auth = require("../../middlewares/auth");
 const User = require("../../models/userModel");
 const scheduleYearlyUpdate = require('../../controllers/Savingscronjob');
+const {addTransactionDetails}= require('../../controllers/TransactionHistoryControllers')
 
 scheduleYearlyUpdate();
 
 router.post("/Savings", auth, async (req, res) => {
   try {
     const { amount, duration, Startduration, EndDuration } = req.body;
-
+    const uId = req.user._id
+    console.log('--------------->',uId)
     if (!amount || !duration || !Startduration || !EndDuration) {
       return res.status(400).json({ msg: "Please fill all the fields" });
     }
@@ -45,7 +47,7 @@ router.post("/Savings", auth, async (req, res) => {
         });
     }
     await savings.save();
-    addTransactionDetails(amount,"savings deposit", new Date())
+    addTransactionDetails(uId,amount,"savings", new Date())
 
     res.status(200).json({
         success: true,

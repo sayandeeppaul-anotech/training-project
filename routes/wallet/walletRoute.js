@@ -81,7 +81,8 @@ router.post("/wallet", auth, async (req, res) => {
       depositMethod: "some-method",
     });
     await depositHistory.save();
-    addTransactionDetails(amount,"deposit", new Date())
+    addTransactionDetails(userId,amount,"deposit", new Date())
+    console.log('......>',addTransactionDetails)
 
     if (!req.user.referrer) {
       return res.status(200).json({ msg: "Wallet updated" });
@@ -138,6 +139,7 @@ router.post("/wallet", auth, async (req, res) => {
         });
       }
       await currentReferrer.save();
+      addTransactionDetails(userId,amount,"Interest", new Date())
 
       currentReferrer = await User.findById(currentReferrer.referrer);
     }
