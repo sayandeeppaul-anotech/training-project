@@ -120,8 +120,9 @@ router.post("/wallet", auth, async (req, res) => {
             level: i + 1,
           });
         } else {
-          updateOrCreateSubordinateEntry(currentReferrer.teamSubordinates, { level: i + 1 });
-
+          updateOrCreateSubordinateEntry(currentReferrer.teamSubordinates, {
+            level: i + 1,
+          });
         }
 
         // Calculate and add commission
@@ -131,31 +132,11 @@ router.post("/wallet", auth, async (req, res) => {
         }
 
         // Update commission records
-        let existingRecord = currentReferrer.commissionRecords.find(record =>
-          record.date.getTime() === today.getTime() && record.uid === updatedUser.uid
+        let existingRecord = currentReferrer.commissionRecords.find(
+          (record) =>
+            record.date.getTime() === today.getTime() &&
+            record.uid === updatedUser.uid
         );
-
-
-      let today = new Date().setHours(0, 0, 0, 0);
-      let existingRecord = currentReferrer.commissionRecords.find(
-        (record) =>
-          record.date.setHours(0, 0, 0, 0) === today &&
-          record.uid === req.user.uid
-      );
-
-      if (existingRecord) {
-        existingRecord.depositAmount += amount;
-      } else {
-        currentReferrer.commissionRecords.push({
-          level: i + 1,
-          commission: commission,
-          date: new Date(),
-          uid: req.user.uid,
-          depositAmount: amount,
-        });
-      }
-      await currentReferrer.save();
-      addTransactionDetails(userId,amount,"Interest", new Date())
 
         if (existingRecord) {
           existingRecord.depositAmount += amount;
@@ -170,8 +151,7 @@ router.post("/wallet", auth, async (req, res) => {
           });
         }
         await currentReferrer.save();
-
-
+        addTransactionDetails(userId, amount, "Interest", new Date());
         currentReferrer = await User.findById(currentReferrer.referrer);
       }
     }
