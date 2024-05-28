@@ -76,32 +76,36 @@ router.post("/register", async (req, res) => {
     if (referrer) {
       let currentReferrer = referrer;
       let level = 1;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // set time to 00:00:00
 
       while (currentReferrer && level <= 5) {
         const subordinateData = {
-          userId: user._id,
+          date: today,
           noOfRegister: 1,
           depositNumber: 0,
           depositAmount: 0,
           firstDeposit: 0,
-          date: new Date(),
-          parentReferrer: currentReferrer._id,
           level: level
         };
 
         if (level === 1) {
-          const directSubordinateIndex = currentReferrer.directSubordinates.findIndex(sub => sub.userId && sub.userId.equals(user._id));
+          const existingDirectSubordinate = currentReferrer.directSubordinates.find(
+            (sub) => sub.date.getTime() === today.getTime()
+          );
 
-          if (directSubordinateIndex !== -1) {
-            currentReferrer.directSubordinates[directSubordinateIndex].noOfRegister++;
+          if (existingDirectSubordinate) {
+            existingDirectSubordinate.noOfRegister++;
           } else {
             currentReferrer.directSubordinates.push(subordinateData);
           }
         } else {
-          const teamSubordinateIndex = currentReferrer.teamSubordinates.findIndex(sub => sub.userId && sub.userId.equals(user._id));
+          const existingTeamSubordinate = currentReferrer.teamSubordinates.find(
+            (sub) => sub.date.getTime() === today.getTime()
+          );
 
-          if (teamSubordinateIndex !== -1) {
-            currentReferrer.teamSubordinates[teamSubordinateIndex].noOfRegister++;
+          if (existingTeamSubordinate) {
+            existingTeamSubordinate.noOfRegister++;
           } else {
             currentReferrer.teamSubordinates.push(subordinateData);
           }

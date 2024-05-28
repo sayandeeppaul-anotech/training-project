@@ -2,13 +2,11 @@ const mongoose = require("mongoose");
 
 const subordinateSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     noOfRegister: { type: Number, default: 0 },
     depositNumber: { type: Number, default: 0 },
     depositAmount: { type: Number, default: 0 },
     firstDeposit: { type: Number, default: 0 },
     date: { type: Date, default: Date.now },
-    parentReferrer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     level: { type: Number, default: 1 }
   },
   { _id: false }

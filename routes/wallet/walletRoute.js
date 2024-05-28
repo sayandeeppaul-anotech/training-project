@@ -6,6 +6,7 @@ const auth = require("../../middlewares/auth");
 const Deposit = require("../../models/depositHistoryModel");
 const Commission = require("../../models/commissionModel");
 const MainLevelModel = require("../../models/levelSchema");
+const SubordinateTrackingModel = require("../../models/SubordinateTrackingModel");
 
 router.post("/wallet", auth, async (req, res) => {
   try {
@@ -24,106 +25,80 @@ router.post("/wallet", auth, async (req, res) => {
 
     // Calculate total deposit
     const depositDetails = await Deposit.find({ userId: userId });
-    const totalPrevDepositAmount = depositDetails.reduce(
-      (total, depositEntry) => total + depositEntry.depositAmount,
-      0
-    );
-
-    let totalDeposit = totalPrevDepositAmount + amount;
+    const totalPrevDepositAmount = depositDetails.reduce((total, depositEntry) => total + depositEntry.depositAmount, 0);
+    const totalDeposit = totalPrevDepositAmount + amount;
 
     // Update user wallet and achievements based on levels
-    levels.forEach((level, index) => {
-      const prevLevelAmount = index > 0 ? levels[index - 1].minAmount : 0;
-      if (
-        totalDeposit >= level.minAmount &&
-        totalPrevDepositAmount < level.minAmount &&
-        totalPrevDepositAmount >= prevLevelAmount &&
-        !req.user.achievements.includes(level.awarded)
-      ) {
-        req.user.walletAmount += level.bonusAmount;
-        req.user.achievements.push(level.awarded);
-      }
-    });
-
-    req.user.walletAmount += amount;
-    await req.user.save();
+    const updatedUser = await User.findByIdAndUpdate(userId, { $inc: { walletAmount: amount } }, { new: true });
 
     // Check and update first deposit
     let isFirstDeposit = false;
-    if (!req.user.firstDepositMade) {
-      req.user.firstDepositMade = true;
+    if (!updatedUser.firstDepositMade) {
+      updatedUser.firstDepositMade = true;
       isFirstDeposit = true;
+      await updatedUser.save();
     }
-    await req.user.save();
 
     // Create deposit history
     const depositHistory = new Deposit({
-      userId: req.user._id,
+      userId: userId,
       depositAmount: amount,
       depositDate: new Date(),
       depositStatus: "completed",
       depositId: "some-unique-id",
-      depositMethod: "some-method"
+      depositMethod: "some-method",
     });
     await depositHistory.save();
 
     // Distribute commission up the chain
-    if (req.user.referrer) {
+    if (updatedUser.referrer) {
       const commissionRates = await Commission.findOne();
       const commissionRatesArray = [
         commissionRates.level1,
         commissionRates.level2,
         commissionRates.level3,
         commissionRates.level4,
-        commissionRates.level5
+        commissionRates.level5,
       ];
 
-      let currentReferrer = await User.findById(req.user.referrer);
+      let currentReferrer = await User.findById(updatedUser.referrer);
       for (let i = 0; i < 5; i++) {
         if (!currentReferrer) {
           break;
         }
 
         // Update subordinate data
-        let subordinateData = {
-          userId: req.user._id,
-          noOfRegister: 0,
-          depositNumber: 1,
-          depositAmount: amount,
-          firstDeposit: isFirstDeposit ? 1 : 0,
-          date: new Date(),
-          parentReferrer: currentReferrer._id,
-          level: i + 1
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Helper function to update or create an entry in the subordinates array
+        const updateOrCreateSubordinateEntry = (subordinatesArray, subordinateData) => {
+          const index = subordinatesArray.findIndex(sub => sub.date.getTime() === today.getTime());
+
+          if (index !== -1) {
+            subordinatesArray[index].depositNumber++;
+            subordinatesArray[index].depositAmount += amount;
+            if (isFirstDeposit) {
+              subordinatesArray[index].firstDeposit++;
+            }
+          } else {
+            subordinatesArray.push({
+              userId: userId,
+              noOfRegister: 0,
+              depositNumber: 1,
+              depositAmount: amount,
+              firstDeposit: isFirstDeposit ? 1 : 0,
+              date: today,
+              level: subordinateData.level,
+            });
+          }
         };
 
+        // Update direct or team subordinates based on the level
         if (i === 0) {
-          const directSubordinateIndex = currentReferrer.directSubordinates.findIndex(
-            sub => sub.userId && sub.userId.equals(req.user._id)
-          );
-
-          if (directSubordinateIndex !== -1) {
-            currentReferrer.directSubordinates[directSubordinateIndex].depositNumber++;
-            currentReferrer.directSubordinates[directSubordinateIndex].depositAmount += amount;
-            if (isFirstDeposit) {
-              currentReferrer.directSubordinates[directSubordinateIndex].firstDeposit++;
-            }
-          } else {
-            currentReferrer.directSubordinates.push(subordinateData);
-          }
+          updateOrCreateSubordinateEntry(currentReferrer.directSubordinates, { level: i + 1 });
         } else {
-          const teamSubordinateIndex = currentReferrer.teamSubordinates.findIndex(
-            sub => sub.userId && sub.userId.equals(req.user._id)
-          );
-
-          if (teamSubordinateIndex !== -1) {
-            currentReferrer.teamSubordinates[teamSubordinateIndex].depositNumber++;
-            currentReferrer.teamSubordinates[teamSubordinateIndex].depositAmount += amount;
-            if (isFirstDeposit) {
-              currentReferrer.teamSubordinates[teamSubordinateIndex].firstDeposit++;
-            }
-          } else {
-            currentReferrer.teamSubordinates.push(subordinateData);
-          }
+          updateOrCreateSubordinateEntry(currentReferrer.teamSubordinates, { level: i + 1 });
         }
 
         // Calculate and add commission
@@ -133,22 +108,20 @@ router.post("/wallet", auth, async (req, res) => {
         }
 
         // Update commission records
-        let today = new Date().setHours(0, 0, 0, 0);
-        let existingRecord = currentReferrer.commissionRecords.find(
-          record =>
-            record.date.setHours(0, 0, 0, 0) === today &&
-            record.uid === req.user.uid
+        let existingRecord = currentReferrer.commissionRecords.find(record =>
+          record.date.getTime() === today.getTime() && record.uid === updatedUser.uid
         );
 
         if (existingRecord) {
           existingRecord.depositAmount += amount;
+          existingRecord.commission += commission;
         } else {
           currentReferrer.commissionRecords.push({
             level: i + 1,
             commission: commission,
-            date: new Date(),
-            uid: req.user.uid,
-            depositAmount: amount
+            date: today,
+            uid: updatedUser.uid,
+            depositAmount: amount,
           });
         }
         await currentReferrer.save();
@@ -159,10 +132,11 @@ router.post("/wallet", auth, async (req, res) => {
 
     res.status(200).json({ msg: "Wallet updated" });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ msg: "Server Error" });
   }
 });
+
 
 router.get("/deposit/history", auth, isAdmin, async (req, res) => {
   try {
@@ -254,7 +228,9 @@ router.post("/attendance", auth, async (req, res) => {
       new Date().setHours(0, 0, 0, 0) ===
         new Date(req.user.lastBonusWithdrawal).setHours(0, 0, 0, 0)
     ) {
-      return res.status(400).json({ msg: "You have already withdrawn the daily bonus" });
+      return res
+        .status(400)
+        .json({ msg: "You have already withdrawn the daily bonus" });
     }
     req.user.walletAmount += 100;
     req.user.lastBonusWithdrawal = Date.now();
@@ -265,5 +241,142 @@ router.post("/attendance", auth, async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+
+router.get("/previous-day-stats", auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const now = new Date();
+    
+    // Calculate the start of the previous day
+    const startOfPreviousDay = new Date(now);
+    startOfPreviousDay.setDate(now.getDate() - 1);
+    startOfPreviousDay.setHours(0, 0, 0, 0);
+
+    // Calculate the end of the previous day
+    const endOfPreviousDay = new Date(now);
+    endOfPreviousDay.setDate(now.getDate() - 1);
+    endOfPreviousDay.setHours(23, 59, 59, 999);
+
+    // Fetch user data to get subordinates' information
+    const user = await User.findById(userId)
+      .populate("directSubordinates.userId", "username")
+      .populate("teamSubordinates.userId", "username");
+
+    // Fetch commission rates
+    const commissionRates = await Commission.findOne();
+
+    // Fetch and filter deposit records for the previous day only
+    const twentyFourHourDeposits = await Deposit.find({
+      userId: {
+        $in: [userId, ...user.directSubordinates.map((sub) => sub.userId)],
+      },
+      depositDate: { $gte: startOfPreviousDay, $lte: endOfPreviousDay }, // Only deposits within the previous day
+    });
+
+    // Calculate total profit (commission earned)
+    let totalProfit = 0;
+
+    // Check if there are any direct subordinates
+    if (user.directSubordinates.length === 0) {
+      console.log("No direct subordinates found.");
+    } else {
+      // Calculate commission for direct subordinates
+      for (const deposit of twentyFourHourDeposits) {
+        if (userId.equals(deposit.userId)) {
+          continue; // Skip the user's own deposit
+        }
+        const sub = user.directSubordinates.find((sub) =>
+          sub.userId.equals(deposit.userId)
+        );
+        if (sub) {
+          const commissionRate = commissionRates[`level${sub.level}`] || 0;
+          totalProfit += deposit.depositAmount * commissionRate;
+        }
+      }
+    }
+
+    // Check if there are any team subordinates
+    if (user.teamSubordinates.length === 0) {
+      console.log("No team subordinates found.");
+    } else {
+      // Calculate commission for team subordinates
+      for (const teamSubordinate of user.teamSubordinates) {
+        const subUserId = teamSubordinate.userId;
+
+        // Filter deposits made by the current team subordinate
+        const subUserDeposits = twentyFourHourDeposits.filter((deposit) =>
+          deposit.userId.equals(subUserId)
+        );
+
+        // Calculate commission for each deposit made by the team subordinate
+        for (const deposit of subUserDeposits) {
+          const commissionRate =
+            commissionRates[`level${teamSubordinate.level}`] || 0;
+          totalProfit += deposit.depositAmount * commissionRate;
+        }
+      }
+    }
+
+    // Fetch and map data for direct subordinates
+    const directSubordinatesData = await Promise.all(
+      user.directSubordinates.map(async (sub) => {
+        const subUserId = sub.userId._id;
+        const subUserDeposits = await Deposit.find({
+          userId: subUserId,
+          depositDate: { $gte: startOfPreviousDay, $lte: endOfPreviousDay }, // Only deposits within the previous day
+        });
+        const subUserTotalProfit = subUserDeposits.reduce(
+          (total, deposit) => total + deposit.depositAmount,
+          0
+        );
+        const commissionRate = commissionRates[`level${sub.level}`] || 0;
+        const subUserCommission = subUserTotalProfit * commissionRate;
+        return {
+          username: sub.userId.username,
+          depositAmount: subUserTotalProfit,
+          commission: subUserCommission,
+        };
+      })
+    );
+
+    // Fetch and map data for team subordinates
+    const teamSubordinatesData = await Promise.all(
+      user.teamSubordinates.map(async (sub) => {
+        const subUserId = sub.userId._id;
+        const subUserDeposits = await Deposit.find({
+          userId: subUserId,
+          depositDate: { $gte: startOfPreviousDay, $lte: endOfPreviousDay }, // Only deposits within the previous day
+        });
+        const subUserTotalProfit = subUserDeposits.reduce(
+          (total, deposit) => total + deposit.depositAmount,
+          0
+        );
+        const commissionRate = commissionRates[`level${sub.level}`] || 0;
+        const subUserCommission = subUserTotalProfit * commissionRate;
+        return {
+          username: sub.userId.username,
+          depositAmount: subUserTotalProfit,
+          commission: subUserCommission,
+          level: sub.level,
+        };
+      })
+    );
+
+    res.status(200).json({
+      totalProfit,
+      directSubordinates: directSubordinatesData,
+      teamSubordinates: teamSubordinatesData,
+      timeFrame: {
+        start: startOfPreviousDay.toISOString(),
+        end: endOfPreviousDay.toISOString(),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server Error" });
+  }
+});
+
+
 
 module.exports = router;

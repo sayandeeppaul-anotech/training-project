@@ -9,6 +9,7 @@ const walletRoute = require("../routes/wallet/walletRoute");
 const betRoute = require("../routes/wingo/wingoRoutes");
 const couponRoutes = require("../routes/common/coupenCodeRoute");
 const todaysJoinee = require("../routes/users/userDetailsRoute");
+const userStats = require('../routes/users/userStatisticsRoute')
 const transactions = require("../routes/wallet/TodaysRecharge");
 const userBalance = require("../routes/Admin/UserBalance");
 const withdraw = require("../routes/Admin/withdrawRoute");
@@ -35,5 +36,6 @@ router.use("/", getNotification);
 router.use("/", commission);
 router.use("/", savings);
 router.use("/", getSavings);
+router.use("/",userStats)
 
 module.exports = router;
