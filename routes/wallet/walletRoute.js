@@ -6,7 +6,9 @@ const auth = require("../../middlewares/auth");
 const Deposit = require("../../models/depositHistoryModel");
 const Commission = require("../../models/commissionModel");
 const MainLevelModel = require("../../models/levelSchema");
-const {addTransactionDetails} = require('../../controllers/TransactionHistoryControllers')
+const {
+  addTransactionDetails,
+} = require("../../controllers/TransactionHistoryControllers");
 
 router.post("/wallet", auth, async (req, res) => {
   try {
@@ -18,18 +20,31 @@ router.post("/wallet", auth, async (req, res) => {
 
     // Fetch commission levels configuration
     const mainLevelConfig = await MainLevelModel.findOne();
-    if (!mainLevelConfig || !mainLevelConfig.levels || mainLevelConfig.levels.length === 0) {
-      return res.status(500).json({ msg: "Commission levels configuration not found" });
+    if (
+      !mainLevelConfig ||
+      !mainLevelConfig.levels ||
+      mainLevelConfig.levels.length === 0
+    ) {
+      return res
+        .status(500)
+        .json({ msg: "Commission levels configuration not found" });
     }
     const { levels } = mainLevelConfig;
 
     // Calculate total deposit
     const depositDetails = await Deposit.find({ userId: userId });
-    const totalPrevDepositAmount = depositDetails.reduce((total, depositEntry) => total + depositEntry.depositAmount, 0);
+    const totalPrevDepositAmount = depositDetails.reduce(
+      (total, depositEntry) => total + depositEntry.depositAmount,
+      0
+    );
     const totalDeposit = totalPrevDepositAmount + amount;
 
     // Update user wallet and achievements based on levels
-    const updatedUser = await User.findByIdAndUpdate(userId, { $inc: { walletAmount: amount } }, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $inc: { walletAmount: amount } },
+      { new: true }
+    );
 
     // Check and update first deposit
     let isFirstDeposit = false;
@@ -72,8 +87,13 @@ router.post("/wallet", auth, async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         // Helper function to update or create an entry in the subordinates array
-        const updateOrCreateSubordinateEntry = (subordinatesArray, subordinateData) => {
-          const index = subordinatesArray.findIndex(sub => sub.date.getTime() === today.getTime());
+        const updateOrCreateSubordinateEntry = (
+          subordinatesArray,
+          subordinateData
+        ) => {
+          const index = subordinatesArray.findIndex(
+            (sub) => sub.date.getTime() === today.getTime()
+          );
 
           if (index !== -1) {
             subordinatesArray[index].depositNumber++;
@@ -96,9 +116,13 @@ router.post("/wallet", auth, async (req, res) => {
 
         // Update direct or team subordinates based on the level
         if (i === 0) {
-          updateOrCreateSubordinateEntry(currentReferrer.directSubordinates, { level: i + 1 });
+          updateOrCreateSubordinateEntry(currentReferrer.directSubordinates, {
+            level: i + 1,
+          });
         } else {
-          updateOrCreateSubordinateEntry(currentReferrer.teamSubordinates, { level: i + 1 });
+          updateOrCreateSubordinateEntry(currentReferrer.teamSubordinates, {
+            level: i + 1,
+          });
         }
 
         // Calculate and add commission
@@ -108,8 +132,10 @@ router.post("/wallet", auth, async (req, res) => {
         }
 
         // Update commission records
-        let existingRecord = currentReferrer.commissionRecords.find(record =>
-          record.date.getTime() === today.getTime() && record.uid === updatedUser.uid
+        let existingRecord = currentReferrer.commissionRecords.find(
+          (record) =>
+            record.date.getTime() === today.getTime() &&
+            record.uid === updatedUser.uid
         );
 
         if (existingRecord) {
@@ -125,7 +151,7 @@ router.post("/wallet", auth, async (req, res) => {
           });
         }
         await currentReferrer.save();
-        addTransactionDetails(userId,amount,"Interest", new Date())
+        addTransactionDetails(userId, amount, "Interest", new Date());
         currentReferrer = await User.findById(currentReferrer.referrer);
       }
     }
@@ -136,7 +162,6 @@ router.post("/wallet", auth, async (req, res) => {
     res.status(500).json({ msg: "Server Error" });
   }
 });
-
 
 router.get("/deposit/history", auth, isAdmin, async (req, res) => {
   try {
@@ -246,7 +271,7 @@ router.get("/previous-day-stats", auth, async (req, res) => {
   try {
     const userId = req.user._id;
     const now = new Date();
-    
+
     // Calculate the start of the previous day
     const startOfPreviousDay = new Date(now);
     startOfPreviousDay.setDate(now.getDate() - 1);
@@ -376,7 +401,5 @@ router.get("/previous-day-stats", auth, async (req, res) => {
     res.status(500).json({ msg: "Server Error" });
   }
 });
-
-
 
 module.exports = router;
