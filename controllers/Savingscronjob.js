@@ -1,7 +1,7 @@
 const Savings = require("../models/SavingsAmount");
 const cron = require("node-cron");
 const User = require('../models/userModel');
-
+const {addTransactionDetails} = require('./TransactionHistoryControllers')
 const calculateInterest = (amount, duration) => {
   let interestRate;
   if (duration >= 24) {
@@ -34,6 +34,7 @@ const scheduleYearlyUpdate = () => {
         if (user) {
           user.walletAmount += interest; 
           await user.save();
+          addTransactionDetails(savings.user,interest,"interset")
           console.log(`Wallet amount updated for user ${user._id}: ${user.walletAmount}`);
         }
       }
