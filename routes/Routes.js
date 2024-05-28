@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 
-
 const registerRoute = require('../routes/auth/registerRoute');
 const loginRoute = require('../routes/auth/loginRoute');
 const logoutRoute = require('../routes/auth/logoutRoute');
@@ -9,6 +8,7 @@ const walletRoute = require('../routes/wallet/walletRoute');
 const betRoute = require('../routes/wingo/wingoRoutes');
 const couponRoutes = require('../routes/common/coupenCodeRoute');
 const todaysJoinee = require('../routes/users/userDetailsRoute');
+const commissionStats = require('../routes/users/userStatisticsRoute');
 const transactions = require('../routes/wallet/TodaysRecharge');
 const userBalance = require('../routes/Admin/UserBalance');
 const withdraw = require('../routes/Admin/withdrawRoute');
@@ -25,6 +25,7 @@ const Getid = require('./Admin/UPIAddress')
 const transaction = require('./Admin/TransactionHistoryRoute')
 const Savings = require('./wallet/SavingsAmount')
 const ShowSavings = require('./wallet/SavingsAmount')
+
 const trxresult = require('../TRXResult/TRXResult')
 const wingoresult = require('./wingo/wingoResultroute')
 const k3result = require('../K3Resut/K3ResultRoute')
@@ -49,7 +50,7 @@ router.use('/', getAddresses)
 router.use('/',UPIAddress)
 router.use('/',UpdateUPI)
 router.use('/',Getid)
-
+router.use('/',commissionStats)
 router.use('/',transaction)
 router.use('/',Savings)
 router.use('/',ShowSavings)
