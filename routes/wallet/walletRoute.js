@@ -6,12 +6,7 @@ const auth = require("../../middlewares/auth");
 const Deposit = require("../../models/depositHistoryModel");
 const Commission = require("../../models/commissionModel");
 const MainLevelModel = require("../../models/levelSchema");
-
 const {addTransactionDetails} = require('../../controllers/TransactionHistoryControllers')
-
-=======
-const SubordinateTrackingModel = require("../../models/SubordinateTrackingModel");
-
 
 router.post("/wallet", auth, async (req, res) => {
   try {
@@ -54,8 +49,6 @@ router.post("/wallet", auth, async (req, res) => {
       depositMethod: "some-method",
     });
     await depositHistory.save();
-    addTransactionDetails(userId,amount,"deposit", new Date())
-    console.log('......>',addTransactionDetails)
 
     // Distribute commission up the chain
     if (updatedUser.referrer) {
@@ -67,26 +60,6 @@ router.post("/wallet", auth, async (req, res) => {
         commissionRates.level4,
         commissionRates.level5,
       ];
-
-
-    let currentReferrer = await User.findById(req.user.referrer);
-
-    const commisionRates = await Commission.find();
-    let level1 = commisionRates[0].level1;
-    let level2 = commisionRates[0].level2;
-    let level3 = commisionRates[0].level3;
-    let level4 = commisionRates[0].level4;
-    let level5 = commisionRates[0].level5;
-    let commissionRates = [level1, level2, level3, level4, level5];
-    for (let i = 0; i < 5; i++) {
-      if (!currentReferrer) {
-        break;
-      }
-      if (i === 0) {
-        currentReferrer.directSubordinates[0].depositNumber++;
-        currentReferrer.directSubordinates[0].depositAmount += amount;
-        if (isFirstDeposit) {
-          currentReferrer.directSubordinates[0].firstDeposit++;
 
       let currentReferrer = await User.findById(updatedUser.referrer);
       for (let i = 0; i < 5; i++) {
@@ -126,7 +99,6 @@ router.post("/wallet", auth, async (req, res) => {
           updateOrCreateSubordinateEntry(currentReferrer.directSubordinates, { level: i + 1 });
         } else {
           updateOrCreateSubordinateEntry(currentReferrer.teamSubordinates, { level: i + 1 });
-
         }
 
         // Calculate and add commission
@@ -139,28 +111,6 @@ router.post("/wallet", auth, async (req, res) => {
         let existingRecord = currentReferrer.commissionRecords.find(record =>
           record.date.getTime() === today.getTime() && record.uid === updatedUser.uid
         );
-
-
-      let today = new Date().setHours(0, 0, 0, 0);
-      let existingRecord = currentReferrer.commissionRecords.find(
-        (record) =>
-          record.date.setHours(0, 0, 0, 0) === today &&
-          record.uid === req.user.uid
-      );
-
-      if (existingRecord) {
-        existingRecord.depositAmount += amount;
-      } else {
-        currentReferrer.commissionRecords.push({
-          level: i + 1,
-          commission: commission,
-          date: new Date(),
-          uid: req.user.uid,
-          depositAmount: amount,
-        });
-      }
-      await currentReferrer.save();
-      addTransactionDetails(userId,amount,"Interest", new Date())
 
         if (existingRecord) {
           existingRecord.depositAmount += amount;
@@ -175,8 +125,7 @@ router.post("/wallet", auth, async (req, res) => {
           });
         }
         await currentReferrer.save();
-
-
+        addTransactionDetails(userId,amount,"Interest", new Date())
         currentReferrer = await User.findById(currentReferrer.referrer);
       }
     }
@@ -192,9 +141,6 @@ router.post("/wallet", auth, async (req, res) => {
 router.get("/deposit/history", auth, isAdmin, async (req, res) => {
   try {
     const depositHistory = await Deposit.find();
-
-    console.log("------------->",depositHistory)
-
     res.status(200).json(depositHistory);
   } catch (err) {
     console.log(err);
@@ -296,9 +242,6 @@ router.post("/attendance", auth, async (req, res) => {
   }
 });
 
-
-module.exports = router;
-=======
 router.get("/previous-day-stats", auth, async (req, res) => {
   try {
     const userId = req.user._id;
@@ -437,4 +380,3 @@ router.get("/previous-day-stats", auth, async (req, res) => {
 
 
 module.exports = router;
-
