@@ -13,8 +13,10 @@ router.post("/withdraw-request", auth, isNormal, requestWithdraw);
 router.get("/all-withdraw-history-admin_only",auth,isAdmin,fetchWithdrawController);
 router.get("/all-withdraw-history", auth, isNormal, fetchWithdrawController);
 router.post("/update-withdraw-status",auth,isAdmin,withdrawAcceptanceController);
+
 router.get("/total-withdraw-request-amount",auth,isAdmin,totalWithdrawRequestController);
 router.get("/total-withdrawl-amount", auth, isAdmin, totalWithdrawsController);
 router.get("/total-withdraw-amount-last-24-hours",auth,isAdmin,getTotalWithdrawAmountLast24Hours);
+
 
 module.exports = router;

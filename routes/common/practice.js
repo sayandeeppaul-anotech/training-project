@@ -36,4 +36,18 @@ router.get("/all-users", auth, async(req, res) => {
     }
 })
 
+
+router.get('/user/subordinatedata',auth, async (req, res) => {
+    try {
+      const User = await user.findById(req.user._id).select('commissionRecords');
+      if (!User) {
+        return res.status(404).send('User not found');
+      }
+    res.send(User.commissionRecords);
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  });
+
+  
 module.exports =  router;

@@ -1,209 +1,238 @@
-const WingoResult = require('../models/wingoResultModel');
-const K3Result = require('../models/K3ResultModel');
-const TrxResult = require('../models/trxResultModel');
-const crypto = require('crypto');
-const cron = require('node-cron');
-const moment = require('moment');
-const Bets = require('../models/betsModel');
-const User = require('../models/userModel');
-
-
+const WingoResult = require("../models/wingoResultModel");
+const K3Result = require("../models/K3ResultModel");
+const TrxResult = require("../models/trxResultModel");
+const crypto = require("crypto");
+const cron = require("node-cron");
+const moment = require("moment");
+const Bets = require("../models/betsModel");
+const User = require("../models/userModel");
 
 function secondsToHms(d) {
-    d = Number(d);
-    var m = Math.floor(d % 3600 / 60);
-    return ('0' + m).slice(-2) + ":" + ('0' + (d % 60)).slice(-2);
+  d = Number(d);
+  var m = Math.floor((d % 3600) / 60);
+  return ("0" + m).slice(-2) + ":" + ("0" + (d % 60)).slice(-2);
 }
-
 
 async function getLatestPeriodId(timer) {
-    let timerModel;
-    switch (timer) {
-        case '1min':
-            timerModel = Timer1Min;
-            break;
-        case '3min':
-            timerModel = Timer3Min;
-            break;
-        case '5min':
-            timerModel = Timer5Min;
-            break;
-        case '10min':
-            timerModel = Timer10Min;
-            break;
-    }
-    const latestTimer = await timerModel.find().sort({ _id: -1 }).limit(1);
-    return latestTimer[0].periodId;
+  let timerModel;
+  switch (timer) {
+    case "1min":
+      timerModel = Timer1Min;
+      break;
+    case "3min":
+      timerModel = Timer3Min;
+      break;
+    case "5min":
+      timerModel = Timer5Min;
+      break;
+    case "10min":
+      timerModel = Timer10Min;
+      break;
+  }
+  const latestTimer = await timerModel.find().sort({ _id: -1 }).limit(1);
+  return latestTimer[0].periodId;
 }
-
 
 const createTimer = (TimerModel, interval, timerName) => {
-    const cronInterval = `*/${interval} * * * *`;
+  const cronInterval = `*/${interval} * * * *`;
 
-    const jobFunction = async () => {
+  const jobFunction = async () => {
+    const periodId = moment().format("YYYYMMDDHHmmss");
+    await TimerModel.create({ periodId });
 
-        const periodId = moment().format('YYYYMMDDHHmmss'); 
-        await TimerModel.create({ periodId });
+    setTimeout(async () => {
+      // Fetch all the bets where selectedItem is a number and periodId matches the current periodId
+      const numberBets = await Bets.find({
+        periodId,
+        selectedItem: { $regex: /^[0-9]$/ },
+      });
 
-        setTimeout(async () => {
+      // Initialize betCounts with all numbers set to 0
+      const betCounts = Array.from({ length: 10 }, (_, i) =>
+        i.toString()
+      ).reduce((counts, number) => {
+        counts[number] = 0;
+        return counts;
+      }, {});
 
-            // Fetch all the bets where selectedItem is a number and periodId matches the current periodId
-const numberBets = await Bets.find({ periodId, selectedItem: { $regex: /^[0-9]$/ } });
+      // Count the bets for each number
+      numberBets.forEach((bet) => {
+        betCounts[bet.selectedItem]++;
+      });
 
-// Initialize betCounts with all numbers set to 0
-const betCounts = Array.from({ length: 10 }, (_, i) => i.toString()).reduce((counts, number) => {
-    counts[number] = 0;
-    return counts;
-}, {});
+      // Find the number(s) with the least bets
+      const minBetCount = Math.min(...Object.values(betCounts));
+      const leastBetNumbers = Object.keys(betCounts).filter(
+        (number) => betCounts[number] === minBetCount
+      );
 
-// Count the bets for each number
-numberBets.forEach(bet => {
-    betCounts[bet.selectedItem]++;
-});
+      // If there are multiple numbers with the least bets, pick one randomly
+      let numberOutcome;
+      if (leastBetNumbers.length > 0) {
+        const randomIndex = Math.floor(Math.random() * leastBetNumbers.length);
+        numberOutcome = leastBetNumbers[randomIndex];
+      } else {
+        // If no bets are placed on any number, pick a random number as numberOutcome
+        numberOutcome = Math.floor(Math.random() * 10).toString();
+      }
+      let sizeOutcome = parseInt(numberOutcome) < 5 ? "small" : "big";
 
-// Find the number(s) with the least bets
-const minBetCount = Math.min(...Object.values(betCounts));
-const leastBetNumbers = Object.keys(betCounts).filter(number => betCounts[number] === minBetCount);
+      let colorOutcome;
+      switch (numberOutcome) {
+        case "1":
+        case "3":
+        case "7":
+        case "9":
+          colorOutcome = "green";
+          break;
+        case "2":
+        case "4":
+        case "6":
+        case "8":
+          colorOutcome = "red";
+          break;
+        case "0":
+          colorOutcome = ["red", "violet"];
+          break;
+        case "5":
+          colorOutcome = ["green", "violet"];
+          break;
+        default:
+          colorOutcome = "unknown";
+      }
 
-// If there are multiple numbers with the least bets, pick one randomly
-let numberOutcome;
-if (leastBetNumbers.length > 0) {
-    const randomIndex = Math.floor(Math.random() * leastBetNumbers.length);
-    numberOutcome = leastBetNumbers[randomIndex];
-} else {
-    // If no bets are placed on any number, pick a random number as numberOutcome
-    numberOutcome = Math.floor(Math.random() * 10).toString();
-}
-            let sizeOutcome = parseInt(numberOutcome) < 5 ? 'small' : 'big';
+      await WingoResult.create({
+        timer: timerName,
+        periodId,
+        colorOutcome,
+        numberOutcome,
+        sizeOutcome,
+      });
 
-            let colorOutcome;
-            switch(numberOutcome) {
-                case '1':
-                case '3':
-                case '7':
-                case '9':
-                    colorOutcome = 'green';
-                    break;
-                case '2':
-                case '4':
-                case '6':
-                case '8':
-                    colorOutcome = 'red';
-                    break;
-                case '0':
-                    colorOutcome = ['red', 'violet'];
-                    break;
-                case '5':
-                    colorOutcome = ['green', 'violet'];
-                    break;
-                default:
-                    colorOutcome = 'unknown';
-            }
+      console.log(`Timer ${timerName} & ${periodId} ended.`);
+      // check for this periodId in the bets model
+      const bets = await Bets.find({ periodId: periodId });
 
-            await WingoResult.create({ timer: timerName, periodId, colorOutcome, numberOutcome, sizeOutcome });
+      if (bets.length === 0) {
+        console.log(`No bets for ${timerName} & ${periodId}`);
+        return;
+      } else {
+        console.log(`Bets for ${timerName} & ${periodId} found.`);
+        if (bets.length > 0) {
+          bets
+            .filter((bet) => bet.selectedTimer === timerName) // Only include bets that match the current timer
+            .forEach(async (bet) => {
+              let winLoss = 0;
+              let status = "FAIL"; // Default status to 'lost'
+              let result = numberOutcome;
+              if (bet.selectedItem === numberOutcome) {
+                winLoss =
+                  typeof bet.totalBet === "number"
+                    ? (bet.totalBet * 9).toString()
+                    : "0"; // 9 times if numberOutcome
+              } else if (bet.selectedItem === colorOutcome) {
+                winLoss =
+                  typeof bet.totalBet === "number"
+                    ? (bet.totalBet * 2).toString()
+                    : "0"; // 2 times if colorOutcome
+              } else if (bet.selectedItem === sizeOutcome) {
+                winLoss =
+                  typeof bet.totalBet === "number"
+                    ? (bet.totalBet * 2).toString()
+                    : "0"; // 2 times if sizeOutcome
+              }
 
-            console.log(`Timer ${timerName} & ${periodId} ended.`);
-            // check for this periodId in the bets model 
-            const bets = await  Bets.find({ periodId: periodId });
-
-            if (bets.length === 0) {
-                console.log(`No bets for ${timerName} & ${periodId}`);
-                return;
-            } else { 
-                console.log(`Bets for ${timerName} & ${periodId} found.`);
-                if (bets.length > 0) {
-                    bets
-                    .filter(bet => bet.selectedTimer === timerName) // Only include bets that match the current timer
-                    .forEach(async bet => {
-                        let winLoss = 0;
-                        let status = 'lost'; // Default status to 'lost'
-                        let result = numberOutcome;
-                        if (bet.selectedItem === numberOutcome) {
-                            winLoss = typeof bet.totalBet === 'number' ? (bet.totalBet * 9).toString() : '0'; // 9 times if numberOutcome
-                        } else if (bet.selectedItem === colorOutcome) {
-                            winLoss = typeof bet.totalBet === 'number' ? (bet.totalBet * 2).toString() : '0'; // 2 times if colorOutcome
-                        } else if (bet.selectedItem === sizeOutcome) {
-                            winLoss = typeof bet.totalBet === 'number' ? (bet.totalBet * 2).toString() : '0'; // 2 times if sizeOutcome
-                        }
-                
-                        if (winLoss !== 0) {
-                            // Update the user's walletAmount
-                            const user = await User.findById(bet.userId);
-                            if (user) {
-                                user.walletAmount += Number(winLoss); // Convert winLoss back to a number before adding it to walletAmount
-                                await user.save();
-                            }
-                            status = 'win'; // Update status to 'win' if the user has won
-                        } else {
-                            winLoss = typeof bet.totalBet === 'number' ? (bet.totalBet * -1).toString() : '0'; // Set winLoss to negative if the user loses
-                        }
-                        await Bets.findByIdAndUpdate(bet._id, { status, winLoss , result});
-                    });
+              if (winLoss !== 0) {
+                // Update the user's walletAmount
+                const user = await User.findById(bet.userId);
+                if (user) {
+                  user.walletAmount += Number(winLoss); // Convert winLoss back to a number before adding it to walletAmount
+                  await user.save();
                 }
-            }
-
-const trxBlockAddress = Math.floor(Math.random() * 90000000 + 10000000).toString(); 
-const blockTime = moment().format('HH:mm:ss'); 
-const hash = crypto.randomBytes(20).toString('hex'); 
-const numberOutcomeGameResult = hash.match(/\d(?=[^\d]*$)/)[0];
-
-const gameResult = new TrxResult({
-    timer: timerName,
-    periodId,
-    colorOutcome,
-    numberOutcome: numberOutcomeGameResult, 
-    sizeOutcome,
-    trxBlockAddress,
-    blockTime,
-    hash
-});
-
-await gameResult.save();
-     
-            // K3 game logic
-            const diceOutcome = [Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6)];
-            const totalSum = diceOutcome.reduce((a, b) => a + b, 0);
-            const size = totalSum < 15 ? 'Small' : 'Big';
-            const parity = totalSum % 2 === 0 ? 'Even' : 'Odd';
-
-            const resultK3 = new K3Result({
-              timerName: timerName,
-              periodId: periodId,
-              totalSum: totalSum,
-              size: size,
-              parity: parity,
-              diceOutcome: diceOutcome,
+                status = "WIN"; // Update status to 'win' if the user has won
+              } else {
+                winLoss =
+                  typeof bet.totalBet === "number"
+                    ? (bet.totalBet * -1).toString()
+                    : "0"; // Set winLoss to negative if the user loses
+              }
+              await Bets.findByIdAndUpdate(bet._id, {
+                status,
+                winLoss,
+                result,
+              });
             });
+        }
+      }
+console.log('inside')
+      const trxBlockAddress = Math.floor(
+        Math.random() * 90000000 + 10000000
+      ).toString();
+      const blockTime = moment().format("HH:mm:ss");
+      const hash = crypto.randomBytes(20).toString("hex");
+      const numberOutcomeGameResult = hash.match(/\d(?=[^\d]*$)/)[0];
 
-            resultK3.save();
+      const gameResult = new TrxResult({
+        timer: timerName,
+        periodId,
+        colorOutcome,
+        numberOutcome: numberOutcomeGameResult,
+        sizeOutcome,
+        trxBlockAddress,
+        blockTime,
+        hash,
+      });
 
-        }, interval * 60 * 1000); // Wait for the end of the period
+      await gameResult.save();
+      console.log('---->',TrxResult)
 
-        console.log(`Timer ${timerName} & ${periodId}  started.`);
+      // K3 game logic
+      const diceOutcome = [
+        Math.ceil(Math.random() * 6),
+        Math.ceil(Math.random() * 6),
+        Math.ceil(Math.random() * 6),
+      ];
+      const totalSum = diceOutcome.reduce((a, b) => a + b, 0);
+      const size = totalSum < 15 ? "Small" : "Big";
+      const parity = totalSum % 2 === 0 ? "Even" : "Odd";
 
-    };
+      const resultK3 = new K3Result({
+        timerName: timerName,
+        periodId: periodId,
+        totalSum: totalSum,
+        size: size,
+        parity: parity,
+        diceOutcome: diceOutcome,
+      });
 
-    // Run the job function immediately
-    jobFunction();
+      resultK3.save();
+    }, interval * 60 * 1000); // Wait for the end of the period
 
-    const job = cron.schedule(cronInterval, jobFunction);
+    console.log(`Timer ${timerName} & ${periodId}  started.`);
+  };
 
-    // Start the cron job
-    job.start();
+  // Run the job function immediately
+  jobFunction();
+
+  const job = cron.schedule(cronInterval, jobFunction);
+
+  // Start the cron job
+  job.start();
 };
 
 const calculateRemainingTime = (periodId, minutes) => {
-    const endTime = moment(periodId, 'YYYY-MM-DD-HH-mm-ss').add(minutes, 'minutes');
-    const now = moment();
-    const diff = endTime.diff(now, 'seconds');
-    return diff > 0 ? diff : 0;
+  const endTime = moment(periodId, "YYYY-MM-DD-HH-mm-ss").add(
+    minutes,
+    "minutes"
+  );
+  const now = moment();
+  const diff = endTime.diff(now, "seconds");
+  return diff > 0 ? diff : 0;
 };
-
 
 module.exports = {
-    secondsToHms,
-    calculateRemainingTime,
-    getLatestPeriodId,
-    createTimer
+  secondsToHms,
+  calculateRemainingTime,
+  getLatestPeriodId,
+  createTimer,
 };
-
