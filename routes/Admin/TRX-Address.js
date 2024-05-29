@@ -9,94 +9,102 @@ const router = express.Router();
 
 router.post("/CreateAddress", auth, isAdmin, async (req, res) => {
   try {
-    const { TRXAddress } = req.body;
-
+    const { TRXAddress, qrCodeImageAddress } = req.body;
     console.log("--->", TRXAddress);
-    if (!TRXAddress) {
-      return res.status(400).send("TRXAddress is required");
+    if (!TRXAddress || !qrCodeImageAddress) {
+      return res.status(400).json({
+        success: false,
+        message: "TRXAddress and qrCodeImageAddress are required",
+      });
     }
+
+    // Check if a TRXAddress already exists for this user
+    const existingAddress = await TRXAddressModel.findOne({ user: req.user._id });
+    if (existingAddress) {
+      return res.status(409).json({
+        success: false,
+        message: "TRXAddress already exists for this user. If you want to modify it, use update.",
+      });
+    }
+
+    // Create a new TRXAddress since one doesn't exist yet
     const newTRXAddress = new TRXAddressModel({
       TRXAddress,
       user: req.user._id,
+      qrCodeImageAddress
     });
 
     await newTRXAddress.save();
 
-    res.status(200).json({
+    res.status(201).json({
       success: true,
       message: "Saved the address",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Server error" + error.message,
+      message: "Server error: " + error.message,
     });
   }
 });
 
-router.put("/UpdateAddress/:id", auth, isAdmin, async (req, res) => {
+router.put("/updateAddress", auth, isAdmin, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { TRXAddress } = req.body;
-
-    // Ensure that TRXAddress is provided in the request body
-    if (!TRXAddress) {
-      return res.status(400).send("TRXAddress is required");
-    }
-    const user = await User.findById(req.user._id);
-    console.log(
-      `Attempting to update TRX address for record with ID: ${id} to "${TRXAddress}".`
-    );
-
-    // Perform the update operation
-    const updatedTRXAddress = await TRXAddressModel.findByIdAndUpdate(
-      id,
-      { TRXAddress },
-      { new: true }
-    );
-    console.log(".....>", updatedTRXAddress);
-
-    // Verify if a document was found and updated
-    if (!updatedTRXAddress) {
-      console.log(`No document found with ID: ${id} for user: ${req.user._id}`);
-      return res.status(404).json({
-        success: false,
-        message: "Address not found",
-      });
+    const { TRXAddress: newTRXAddress, qrCodeImageAddress: newQrCodeImageAddress } = req.body;
+    if (!newTRXAddress || !newQrCodeImageAddress) {
+      return res.status(400).send("TRXAddress and qrCodeImageAddress are required");
     }
 
-    // Update successful
-    console.log(`Successfully updated TRX address for record with ID: ${id}.`);
+    const updatedTrxAddress = await TRXAddressModel.findOneAndUpdate(
+      { user: req.user._id },
+      { $set: { TRXAddress: newTRXAddress, qrCodeImageAddress: newQrCodeImageAddress } },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedTrxAddress) {
+      return res.status(404).send("Address not found");
+    }
+
     res.status(200).json({
       success: true,
-      message: "Updated the address",
-      updatedTRXAddress, // Optionally include the updated address in the response
+      message: "Address updated",
+      updatedTrxAddress
     });
   } catch (error) {
-    console.error("Error updating TRX address:", error); // Log the error if it occurs
     res.status(500).json({
       success: false,
-      message: "Server error",
       error: error.message,
     });
   }
 });
-///////// GET Address//////////
+
+///////// GET Address //////////
 router.get("/getAddresses", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    console.log("Authenticated User:", user);
 
     if (!user) {
       return res.status(404).send("User not found");
     }
-    let addresses;
-
+    
+    // Here we'll assume that there's some identifier or flag that helps us recognize 
+    // an admin-created address that should be visible to all users,
+    // for example, a boolean field 'isVisibleToAllUsers' set to true.
+    
+    let query;
     if (user.role === "admin") {
-      addresses = await TRXAddressModel.find();
+      // If the user is an admin, they get all addresses
+      query = TRXAddressModel.find();
     } else {
-      addresses = await TRXAddressModel.find();
+      // If the user is not an admin, they get only the addresses marked as visible to all users
+      // You might adjust this query based on how admin addresses are identified in your schema
+      query = TRXAddressModel.find();
     }
-    console.log("......>", addresses);
+
+    const addresses = await query;
+    console.log("Query Executed:", query.getQuery());
+    console.log("Addresses Found:", addresses);
 
     if (!addresses.length) {
       return res.status(404).json({
@@ -110,11 +118,14 @@ router.get("/getAddresses", auth, async (req, res) => {
       addresses,
     });
   } catch (error) {
+    console.error("Error Fetching Addresses:", error);
     res.status(500).json({
       success: false,
       message: "Server error: " + error.message,
     });
   }
 });
+
+
 
 module.exports = router;

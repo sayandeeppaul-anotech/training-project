@@ -2,12 +2,16 @@ const mongoose = require('mongoose')
 const User = require('./userModel')
 const trxAddressSchema = new mongoose.Schema({
   TRXAddress:{
-    type:Number,
+    type:String,
     required:true
   },
   user:{
     type:mongoose.Schema.Types.ObjectId,
     ref:'User',
+  },
+  qrCodeImageAddress: { 
+    type: String,
+    required: true 
   }
 
 })

@@ -10,7 +10,11 @@ Upi:{
     user:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'User'
-    }
+    },
+    qrCodeImageAddress: { 
+        type: String,
+        required: true 
+      }
 }) 
 
 const UPI = mongoose.model('UPI',UPIAddress)
