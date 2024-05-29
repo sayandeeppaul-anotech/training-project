@@ -1,3 +1,4 @@
+
 const WingoResult = require("../models/wingoResultModel");
 const K3Result = require("../models/K3ResultModel");
 const TrxResult = require("../models/trxResultModel");
