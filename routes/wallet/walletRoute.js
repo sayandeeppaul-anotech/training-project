@@ -1,11 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../../models/userModel");
-const {
-  isAdmin,
-  isNormal,
-  isRestricted,
-} = require("../../middlewares/roleSpecificMiddleware");
+const { isAdmin } = require("../../middlewares/roleSpecificMiddleware");
 const auth = require("../../middlewares/auth");
 const Deposit = require("../../models/depositHistoryModel");
 const Commission = require("../../models/commissionModel");
@@ -15,13 +11,14 @@ const {
 } = require("../../controllers/TransactionHistoryControllers");
 
 router.post("/wallet", auth, async (req, res) => {
-  try {
+  try {   
     const { amount } = req.body;
     if (!amount) {
       return res.status(400).json({ msg: "Amount is required" });
     }
     const userId = req.user._id;
 
+    // Fetch commission levels configuration
     const mainLevelConfig = await MainLevelModel.findOne();
     if (
       !mainLevelConfig ||
@@ -33,7 +30,8 @@ router.post("/wallet", auth, async (req, res) => {
         .json({ msg: "Commission levels configuration not found" });
     }
     const { levels } = mainLevelConfig;
-    console.log(levels);
+
+    // Calculate total deposit
     const depositDetails = await Deposit.find({ userId: userId });
     const totalPrevDepositAmount = depositDetails.reduce(
       (total, depositEntry) => total + depositEntry.depositAmount,
@@ -50,14 +48,15 @@ router.post("/wallet", auth, async (req, res) => {
 
     // Check and update first deposit
     let isFirstDeposit = false;
-    if (!req.user.firstDepositMade) {
-      req.user.firstDepositMade = true;
+    if (!updatedUser.firstDepositMade) {
+      updatedUser.firstDepositMade = true;
       isFirstDeposit = true;
+      await updatedUser.save();
     }
-    await req.user.save();
 
+    // Create deposit history
     const depositHistory = new Deposit({
-      userId: req.user._id,
+      userId: userId,
       depositAmount: amount,
       depositDate: new Date(),
       depositStatus: "completed",
@@ -159,7 +158,7 @@ router.post("/wallet", auth, async (req, res) => {
 
     res.status(200).json({ msg: "Wallet updated" });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ msg: "Server Error" });
   }
 });
@@ -180,60 +179,55 @@ router.get("/pending-recharge", auth, isAdmin, async (req, res) => {
     if (!allDeposit) {
       console.log("No user found in the DB");
     }
-    let pendingRechargeArray = [];
-    pendingRechargeArray = allDeposit.filter(
+    let pendingRechargeArray = allDeposit.filter(
       (deposit) => deposit.depositStatus !== "completed"
     );
-    console.log(pendingRechargeArray);
     if (pendingRechargeArray.length === 0) {
-      res.status(200).json({
+      return res.status(200).json({
         pendingAmount: 0,
         success: true,
         message: "No transaction is in pending state",
       });
     }
-    let totalPendingAmount = 0;
-    for (let i = 0; i < pendingRechargeArray.length; i++) {
-      totalPendingAmount =
-        totalPendingAmount + pendingRechargeArray[i].depositAmount;
-    }
+    let totalPendingAmount = pendingRechargeArray.reduce(
+      (total, deposit) => total + deposit.depositAmount,
+      0
+    );
     res.status(200).json({
       pendingAmount: totalPendingAmount,
       success: true,
-      message: "data fetched succesfully",
+      message: "Data fetched successfully",
     });
   } catch (err) {
     console.log(err);
     res.status(500).json({ msg: "Server Error" });
   }
 });
+
 router.get("/success-recharge", auth, isAdmin, async (req, res) => {
   try {
     const allDeposit = await Deposit.find();
     if (!allDeposit) {
       console.log("No user found in the DB");
     }
-    let successRechargeArray = [];
-    successRechargeArray = allDeposit.filter(
+    let successRechargeArray = allDeposit.filter(
       (deposit) => deposit.depositStatus === "completed"
     );
-    console.log(successRechargeArray);
     if (successRechargeArray.length === 0) {
-      res.status(200).json({
+      return res.status(200).json({
         successRechargeAmount: 0,
         success: true,
         message: "No success recharge done yet",
       });
     }
-    let totalSuccessAmount = 0;
-    for (let i = 0; i < successRechargeArray.length; i++) {
-      totalSuccessAmount =
-        totalSuccessAmount + successRechargeArray[i].depositAmount;
-    }
+    let totalSuccessAmount = successRechargeArray.reduce(
+      (total, deposit) => total + deposit.depositAmount,
+      0
+    );
     res.status(200).json({
       successAmount: totalSuccessAmount,
       success: true,
-      message: "data fetched succesfully",
+      message: "Data fetched successfully",
     });
   } catch (err) {
     console.log(err);
@@ -243,7 +237,7 @@ router.get("/success-recharge", auth, isAdmin, async (req, res) => {
 
 router.post("/attendance", auth, async (req, res) => {
   try {
-    const totalDeposit = await DepositHistory.aggregate([
+    const totalDeposit = await Deposit.aggregate([
       { $match: { userId: req.user._id } },
       { $group: { _id: null, total: { $sum: "$depositAmount" } } },
     ]);
