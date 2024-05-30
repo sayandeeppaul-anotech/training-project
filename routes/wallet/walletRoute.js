@@ -11,7 +11,7 @@ const {
 } = require("../../controllers/TransactionHistoryControllers");
 
 router.post("/wallet", auth, async (req, res) => {
-  try {
+  try {   
     const { amount } = req.body;
     if (!amount) {
       return res.status(400).json({ msg: "Amount is required" });
