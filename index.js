@@ -28,9 +28,16 @@ app.use(express.static(path.join(__dirname, 'build')));
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: ["http://localhost:3001", "http://localhost:3002",],
-  credentials: true,
+  origin: 'http://localhost:3001', // replace with the domain of your front-end
+  credentials: true
 }));
+
+app.use(function(req, res, next) {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
+
 app.use(logger);
 app.use(routes);
 app.use('/', practice);
