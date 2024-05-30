@@ -41,42 +41,120 @@ const createTimer = (TimerModel, interval, timerName) => {
     await TimerModel.create({ periodId });
 
     setTimeout(async () => {
-      // Fetch all the bets where selectedItem is a number and periodId matches the current periodId
-      const numberBets = await Bets.find({
-        periodId,
-        selectedItem: { $regex: /^[0-9]$/ },
-      });
+      // Fetch all the bets for the current periodId
+      const bets = await Bets.find({ periodId });
 
-      // Initialize betCounts with all numbers set to 0
-      const betCounts = Array.from({ length: 10 }, (_, i) =>
-        i.toString()
-      ).reduce((counts, number) => {
-        counts[number] = 0;
-        return counts;
-      }, {});
+      console.log("Bets for", timerName, " & ", periodId, "found:", bets);
 
-      // Count the bets for each number
-      numberBets.forEach((bet) => {
-        betCounts[bet.selectedItem]++;
-      });
-
-      // Find the number(s) with the least bets
-      const minBetCount = Math.min(...Object.values(betCounts));
-      const leastBetNumbers = Object.keys(betCounts).filter(
-        (number) => betCounts[number] === minBetCount
+      // Separate bets into number bets and size bets
+      const numberBets = bets.filter((bet) => /^[0-9]$/.test(bet.selectedItem));
+      const sizeBets = bets.filter((bet) =>
+        ["small", "big"].includes(bet.sizeOutcome)
       );
 
-      // If there are multiple numbers with the least bets, pick one randomly
-      let numberOutcome;
-      if (leastBetNumbers.length > 0) {
-        const randomIndex = Math.floor(Math.random() * leastBetNumbers.length);
-        numberOutcome = leastBetNumbers[randomIndex];
-      } else {
-        // If no bets are placed on any number, pick a random number as numberOutcome
-        numberOutcome = Math.floor(Math.random() * 10).toString();
-      }
-      let sizeOutcome = parseInt(numberOutcome) < 5 ? "small" : "big";
+      console.log(
+        "numberBets, sizeBets --->",
+        numberBets.length,
+        sizeBets.length
+      );
 
+      // Initialize betCounts with all numbers set to 0 and size bets
+      const betCounts = { number: {}, size: { small: 0, big: 0 } };
+      for (let i = 0; i < 10; i++) {
+        betCounts.number[i.toString()] = 0;
+      }
+
+      // Count the number bets and size bets
+      numberBets.forEach((bet) => {
+        betCounts.number[bet.selectedItem]++;
+      });
+      sizeBets.forEach((bet) => {
+        betCounts.size[bet.sizeOutcome]++;
+      });
+
+      console.log("betCounts --->", betCounts);
+
+      // Determine the majority category and the least bet option
+      let outcomeCategory, outcomeValue;
+
+      if (numberBets.length >= sizeBets.length) {
+        // Compare numberBets and sizeBets length
+        outcomeCategory = "number";
+        const minBetCount = Math.min(...Object.values(betCounts.number));
+        const leastBetNumbers = Object.keys(betCounts.number).filter(
+          (number) => betCounts.number[number] === minBetCount
+        );
+        outcomeValue =
+          leastBetNumbers.length > 0
+            ? leastBetNumbers[
+                Math.floor(Math.random() * leastBetNumbers.length)
+              ]
+            : Math.floor(Math.random() * 10).toString();
+      } else {
+        outcomeCategory = "size";
+        const leastBetSize =
+          betCounts.size.small <= betCounts.size.big ? "small" : "big"; // Determine least bet size
+        outcomeValue = leastBetSize;
+      }
+
+      console.log("outcome category ---->", outcomeCategory);
+
+      // Determine number outcome if size outcome is selected
+      let numberOutcome;
+      if (outcomeCategory === "size") {
+        const bigNumbers = ["5", "6", "7", "8", "9"];
+        const smallNumbers = ["0", "1", "2", "3", "4"];
+
+        if (outcomeValue === "small") {
+          // Filter for small numbers
+          const smallNumberBets = numberBets.filter((bet) =>
+            smallNumbers.includes(bet.selectedItem)
+          );
+          const minSmallBetCount =
+            smallNumberBets.length > 0
+              ? Math.min(
+                  ...smallNumberBets.map(
+                    (bet) => betCounts.number[bet.selectedItem]
+                  )
+                )
+              : 0;
+          const leastBetSmallNumbers = smallNumbers.filter(
+            (number) => (betCounts.number[number] || 0) === minSmallBetCount
+          );
+          numberOutcome =
+            leastBetSmallNumbers.length > 0
+              ? leastBetSmallNumbers[
+                  Math.floor(Math.random() * leastBetSmallNumbers.length)
+                ]
+              : smallNumbers[Math.floor(Math.random() * smallNumbers.length)];
+        } else {
+          // Filter for big numbers
+          const bigNumberBets = numberBets.filter((bet) =>
+            bigNumbers.includes(bet.selectedItem)
+          );
+          const minBigBetCount =
+            bigNumberBets.length > 0
+              ? Math.min(
+                  ...bigNumberBets.map(
+                    (bet) => betCounts.number[bet.selectedItem]
+                  )
+                )
+              : 0;
+          const leastBetBigNumbers = bigNumbers.filter(
+            (number) => (betCounts.number[number] || 0) === minBigBetCount
+          );
+          numberOutcome =
+            leastBetBigNumbers.length > 0
+              ? leastBetBigNumbers[
+                  Math.floor(Math.random() * leastBetBigNumbers.length)
+                ]
+              : bigNumbers[Math.floor(Math.random() * bigNumbers.length)];
+        }
+      } else {
+        numberOutcome = outcomeValue;
+      }
+
+      let sizeOutcome = parseInt(numberOutcome) < 5 ? "small" : "big";
       let colorOutcome;
       switch (numberOutcome) {
         case "1":
@@ -110,8 +188,6 @@ const createTimer = (TimerModel, interval, timerName) => {
       });
 
       console.log(`Timer ${timerName} & ${periodId} ended.`);
-      // check for this periodId in the bets model
-      const bets = await Bets.find({ periodId: periodId });
 
       if (bets.length === 0) {
         console.log(`No bets for ${timerName} & ${periodId}`);
@@ -120,41 +196,43 @@ const createTimer = (TimerModel, interval, timerName) => {
         console.log(`Bets for ${timerName} & ${periodId} found.`);
         if (bets.length > 0) {
           bets
-            .filter((bet) => bet.selectedTimer === timerName) // Only include bets that match the current timer
+            .filter((bet) => bet.selectedTimer === timerName)
             .forEach(async (bet) => {
               let winLoss = 0;
-              let status = "lost"; // Default status to 'lost'
+              let status = "lost";
               let result = numberOutcome;
               if (bet.selectedItem === numberOutcome) {
                 winLoss =
                   typeof bet.totalBet === "number"
                     ? (bet.totalBet * 9).toString()
-                    : "0"; // 9 times if numberOutcome
+                    : "0";
               } else if (bet.selectedItem === colorOutcome) {
                 winLoss =
                   typeof bet.totalBet === "number"
                     ? (bet.totalBet * 2).toString()
-                    : "0"; // 2 times if colorOutcome
-              } else if (bet.selectedItem === sizeOutcome) {
+                    : "0";
+              } else if (
+                bet.selectedItem === sizeOutcome ||
+                bet.sizeOutcome === sizeOutcome
+              ) {
                 winLoss =
                   typeof bet.totalBet === "number"
                     ? (bet.totalBet * 2).toString()
-                    : "0"; // 2 times if sizeOutcome
+                    : "0";
               }
 
               if (winLoss !== 0) {
-                // Update the user's walletAmount
                 const user = await User.findById(bet.userId);
                 if (user) {
-                  user.walletAmount += Number(winLoss); // Convert winLoss back to a number before adding it to walletAmount
+                  user.walletAmount += Number(winLoss);
                   await user.save();
                 }
-                status = "win"; // Update status to 'win' if the user has won
+                status = "win";
               } else {
                 winLoss =
                   typeof bet.totalBet === "number"
                     ? (bet.totalBet * -1).toString()
-                    : "0"; // Set winLoss to negative if the user loses
+                    : "0";
               }
               await Bets.findByIdAndUpdate(bet._id, {
                 status,
@@ -164,7 +242,7 @@ const createTimer = (TimerModel, interval, timerName) => {
             });
         }
       }
-console.log('inside')
+
       const trxBlockAddress = Math.floor(
         Math.random() * 90000000 + 10000000
       ).toString();
@@ -184,7 +262,6 @@ console.log('inside')
       });
 
       await gameResult.save();
-      console.log('---->',TrxResult)
 
       // K3 game logic
       const diceOutcome = [
@@ -206,25 +283,20 @@ console.log('inside')
       });
 
       resultK3.save();
-    }, interval * 60 * 1000); // Wait for the end of the period
+    }, interval * 60 * 1000);
 
-    console.log(`Timer ${timerName} & ${periodId}  started.`);
+    console.log(`Timer ${timerName} & ${periodId} started.`);
   };
 
-  // Run the job function immediately
   jobFunction();
 
   const job = cron.schedule(cronInterval, jobFunction);
 
-  // Start the cron job
   job.start();
 };
 
 const calculateRemainingTime = (periodId, minutes) => {
-  const endTime = moment(periodId, "YYYY-MM-DD-HH-mm-ss").add(
-    minutes,
-    "minutes"
-  );
+  const endTime = moment(periodId, "YYYYMMDDHHmmss").add(minutes, "minutes");
   const now = moment();
   const diff = endTime.diff(now, "seconds");
   return diff > 0 ? diff : 0;

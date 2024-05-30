@@ -42,129 +42,129 @@ const createTimer1 = (TimerModel, interval, timerName) => {
 
     setTimeout(async () => {
       // Fetch all the bets where selectedItem is a number and periodId matches the current periodId
-    //   const numberBets = await Bets.find({
-    //     periodId,
-    //     selectedItem: { $regex: /^[0-9]$/ },
-    //   });
+      //   const numberBets = await Bets.find({
+      //     periodId,
+      //     selectedItem: { $regex: /^[0-9]$/ },
+      //   });
 
       // Initialize betCounts with all numbers set to 0
-    //   const betCounts = Array.from({ length: 10 }, (_, i) =>
-    //     i.toString()
-    //   ).reduce((counts, number) => {
-    //     counts[number] = 0;
-    //     return counts;
-    //   }, {});
+      //   const betCounts = Array.from({ length: 10 }, (_, i) =>
+      //     i.toString()
+      //   ).reduce((counts, number) => {
+      //     counts[number] = 0;
+      //     return counts;
+      //   }, {});
 
       // Count the bets for each number
-    //   numberBets.forEach((bet) => {
-    //     betCounts[bet.selectedItem]++;
-    //   });
+      //   numberBets.forEach((bet) => {
+      //     betCounts[bet.selectedItem]++;
+      //   });
 
       // Find the number(s) with the least bets
-    //   const minBetCount = Math.min(...Object.values(betCounts));
-    //   const leastBetNumbers = Object.keys(betCounts).filter(
-    //     (number) => betCounts[number] === minBetCount
-    //   );
+      //   const minBetCount = Math.min(...Object.values(betCounts));
+      //   const leastBetNumbers = Object.keys(betCounts).filter(
+      //     (number) => betCounts[number] === minBetCount
+      //   );
 
       // If there are multiple numbers with the least bets, pick one randomly
-      let numberOutcome=1;
-    //   if (leastBetNumbers.length > 0) {
-    //     const randomIndex = Math.floor(Math.random() * leastBetNumbers.length);
-    //     numberOutcome = leastBetNumbers[randomIndex];
-    //   } else {
-    //     // If no bets are placed on any number, pick a random number as numberOutcome
-    //     numberOutcome = Math.floor(Math.random() * 10).toString();
-    //   }
-    //   let sizeOutcome = parseInt(numberOutcome) < 5 ? "small" : "big";
+      let numberOutcome = 1;
+      //   if (leastBetNumbers.length > 0) {
+      //     const randomIndex = Math.floor(Math.random() * leastBetNumbers.length);
+      //     numberOutcome = leastBetNumbers[randomIndex];
+      //   } else {
+      //     // If no bets are placed on any number, pick a random number as numberOutcome
+      //     numberOutcome = Math.floor(Math.random() * 10).toString();
+      //   }
+      //   let sizeOutcome = parseInt(numberOutcome) < 5 ? "small" : "big";
 
-    //   let colorOutcome;
-    //   switch (numberOutcome) {
-    //     case "1":
-    //     case "3":
-    //     case "7":
-    //     case "9":
-    //       colorOutcome = "green";
-    //       break;
-    //     case "2":
-    //     case "4":
-    //     case "6":
-    //     case "8":
-    //       colorOutcome = "red";
-    //       break;
-    //     case "0":
-    //       colorOutcome = ["red", "violet"];
-    //       break;
-    //     case "5":
-    //       colorOutcome = ["green", "violet"];
-    //       break;
-    //     default:
-    //       colorOutcome = "unknown";
-    //   }
+      //   let colorOutcome;
+      //   switch (numberOutcome) {
+      //     case "1":
+      //     case "3":
+      //     case "7":
+      //     case "9":
+      //       colorOutcome = "green";
+      //       break;
+      //     case "2":
+      //     case "4":
+      //     case "6":
+      //     case "8":
+      //       colorOutcome = "red";
+      //       break;
+      //     case "0":
+      //       colorOutcome = ["red", "violet"];
+      //       break;
+      //     case "5":
+      //       colorOutcome = ["green", "violet"];
+      //       break;
+      //     default:
+      //       colorOutcome = "unknown";
+      //   }
 
-    //   await WingoResult.create({
-    //     timer: timerName,
-    //     periodId,
-    //     colorOutcome,
-    //     numberOutcome,
-    //     sizeOutcome,
-    //   });
+      //   await WingoResult.create({
+      //     timer: timerName,
+      //     periodId,
+      //     colorOutcome,
+      //     numberOutcome,
+      //     sizeOutcome,
+      //   });
 
-    //   console.log(`Timer ${timerName} & ${periodId} ended.`);
-    //   // check for this periodId in the bets model
-    //   const bets = await Bets.find({ periodId: periodId });
+      //   console.log(`Timer ${timerName} & ${periodId} ended.`);
+      //   // check for this periodId in the bets model
+      //   const bets = await Bets.find({ periodId: periodId });
 
-    //   if (bets.length === 0) {
-    //     console.log(`No bets for ${timerName} & ${periodId}`);
-    //     return;
-    //   } else {
-    //     console.log(`Bets for ${timerName} & ${periodId} found.`);
-    //     if (bets.length > 0) {
-    //       bets
-    //         .filter((bet) => bet.selectedTimer === timerName) // Only include bets that match the current timer
-    //         .forEach(async (bet) => {
-    //           let winLoss = 0;
-    //           let status = "lost"; // Default status to 'lost'
-    //           let result = numberOutcome;
-    //           if (bet.selectedItem === numberOutcome) {
-    //             winLoss =
-    //               typeof bet.totalBet === "number"
-    //                 ? (bet.totalBet * 9).toString()
-    //                 : "0"; // 9 times if numberOutcome
-    //           } else if (bet.selectedItem === colorOutcome) {
-    //             winLoss =
-    //               typeof bet.totalBet === "number"
-    //                 ? (bet.totalBet * 2).toString()
-    //                 : "0"; // 2 times if colorOutcome
-    //           } else if (bet.selectedItem === sizeOutcome) {
-    //             winLoss =
-    //               typeof bet.totalBet === "number"
-    //                 ? (bet.totalBet * 2).toString()
-    //                 : "0"; // 2 times if sizeOutcome
-    //           }
+      //   if (bets.length === 0) {
+      //     console.log(`No bets for ${timerName} & ${periodId}`);
+      //     return;
+      //   } else {
+      //     console.log(`Bets for ${timerName} & ${periodId} found.`);
+      //     if (bets.length > 0) {
+      //       bets
+      //         .filter((bet) => bet.selectedTimer === timerName) // Only include bets that match the current timer
+      //         .forEach(async (bet) => {
+      //           let winLoss = 0;
+      //           let status = "lost"; // Default status to 'lost'
+      //           let result = numberOutcome;
+      //           if (bet.selectedItem === numberOutcome) {
+      //             winLoss =
+      //               typeof bet.totalBet === "number"
+      //                 ? (bet.totalBet * 9).toString()
+      //                 : "0"; // 9 times if numberOutcome
+      //           } else if (bet.selectedItem === colorOutcome) {
+      //             winLoss =
+      //               typeof bet.totalBet === "number"
+      //                 ? (bet.totalBet * 2).toString()
+      //                 : "0"; // 2 times if colorOutcome
+      //           } else if (bet.selectedItem === sizeOutcome) {
+      //             winLoss =
+      //               typeof bet.totalBet === "number"
+      //                 ? (bet.totalBet * 2).toString()
+      //                 : "0"; // 2 times if sizeOutcome
+      //           }
 
-    //           if (winLoss !== 0) {
-    //             // Update the user's walletAmount
-    //             const user = await User.findById(bet.userId);
-    //             if (user) {
-    //               user.walletAmount += Number(winLoss); // Convert winLoss back to a number before adding it to walletAmount
-    //               await user.save();
-    //             }
-    //             status = "win"; // Update status to 'win' if the user has won
-    //           } else {
-    //             winLoss =
-    //               typeof bet.totalBet === "number"
-    //                 ? (bet.totalBet * -1).toString()
-    //                 : "0"; // Set winLoss to negative if the user loses
-    //           }
-    //           await Bets.findByIdAndUpdate(bet._id, {
-    //             status,
-    //             winLoss,
-    //             result,
-    //           });
-    //         });
-    //     }
-    //   }
-console.log('inside')
+      //           if (winLoss !== 0) {
+      //             // Update the user's walletAmount
+      //             const user = await User.findById(bet.userId);
+      //             if (user) {
+      //               user.walletAmount += Number(winLoss); // Convert winLoss back to a number before adding it to walletAmount
+      //               await user.save();
+      //             }
+      //             status = "win"; // Update status to 'win' if the user has won
+      //           } else {
+      //             winLoss =
+      //               typeof bet.totalBet === "number"
+      //                 ? (bet.totalBet * -1).toString()
+      //                 : "0"; // Set winLoss to negative if the user loses
+      //           }
+      //           await Bets.findByIdAndUpdate(bet._id, {
+      //             status,
+      //             winLoss,
+      //             result,
+      //           });
+      //         });
+      //     }
+      //   }
+      // console.log('inside')
       const trxBlockAddress = Math.floor(
         Math.random() * 90000000 + 10000000
       ).toString();
@@ -175,16 +175,16 @@ console.log('inside')
       const gameResult = new TrxResult({
         timer: timerName,
         periodId,
-        colorOutcome:'red',
+        colorOutcome: "red",
         numberOutcome: numberOutcomeGameResult,
-        sizeOutcome:'small',
+        sizeOutcome: "small",
         trxBlockAddress,
         blockTime,
         hash,
       });
 
       await gameResult.save();
-      console.log('---->',gameResult)
+      // console.log('---->',gameResult)
 
       // K3 game logic
       const diceOutcome = [
