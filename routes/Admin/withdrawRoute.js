@@ -9,9 +9,9 @@ const {totalWithdrawRequestController,} = require("../../controllers/totalWithdr
 const { totalWithdrawsController } = require("../../controllers/totalWithdrawsController");
 const {getTotalWithdrawAmountLast24Hours,} = require("../../controllers/todaysWithdrawController");
 
-router.post("/withdraw-request", auth, isNormal, requestWithdraw);
+router.post("/withdraw-request", auth, requestWithdraw);
 router.get("/all-withdraw-history-admin_only",auth,isAdmin,fetchWithdrawController);
-router.get("/all-withdraw-history", auth, isNormal, fetchWithdrawController);
+router.get("/all-withdraw-history", auth, fetchWithdrawController);
 router.post("/update-withdraw-status",auth,isAdmin,withdrawAcceptanceController);
 
 router.get("/total-withdraw-request-amount",auth,isAdmin,totalWithdrawRequestController);

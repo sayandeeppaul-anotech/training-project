@@ -12,12 +12,15 @@ const cors = require("cors");
 const routes = require("./routes/Routes");
 const practice = require("./routes/common/practice");
 const user = require("./routes/common/userSchema");
+const path = require("path");
 
 
 
 
 // ----------------------------------------------------------------------------------------
 
+
+app.use(express.static(path.join(__dirname, 'build')));
 
 
 
@@ -33,7 +36,9 @@ app.use(routes);
 app.use('/', practice);
 app.use('/', user);
 
-
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
 
 db.connectDB();
 setupWebSocket(server);
