@@ -13,7 +13,7 @@ const routes = require("./routes/Routes");
 const practice = require("./routes/common/practice");
 const user = require("./routes/common/userSchema");
 const path = require("path");
-const session = require("express-session");
+
 
 
 
@@ -23,20 +23,20 @@ const session = require("express-session");
 app.use(express.static(path.join(__dirname, 'build')));
 
 
-app.use(session({
-  cookie: {
-    sameSite: 'None',
-    secure: true
-  }
-}));
 
 
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: ['http://localhost:3001', 'https://dragon-d561a.web.app'], // replace with the domain of your front-end
+  origin: 'http://localhost:3001', // replace with the domain of your front-end
   credentials: true
 }));
+
+app.use(function(req, res, next) {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 app.use(logger);
 app.use(routes);
