@@ -12,11 +12,10 @@ router.get("/api/subordinates", auth, async (req, res) => {
   if (!userId) {
     return res.status(401).json({ message: "User not authenticated" });
   }
-
   try {
     // Calculate the date 7 days ago
     const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 2);
 
     // Find the user and filter subordinates based on the date
     const user = await User.findById(
@@ -114,6 +113,20 @@ router.get("/commission-stats", auth, async (req, res) => {
   }
 });
 
+
+router.get('/user/totalcommission', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const totalCommission = user.commissionRecords.reduce((total, record) => total + record.commission, 0);
+    res.json({ totalCommission });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 
 module.exports = router;

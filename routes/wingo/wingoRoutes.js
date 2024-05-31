@@ -71,7 +71,7 @@ today.setHours(0, 0, 0, 0);
 let commissionRecord = referrer.commissionRecords.find(record => {
     let recordDate = new Date(record.date);
     recordDate.setHours(0, 0, 0, 0);
-    return recordDate.getTime() === today.getTime();
+    return recordDate.getTime() === today.getTime() && record.uid === req.user.uid;
 });
 
 if (commissionRecord) {
@@ -80,13 +80,16 @@ if (commissionRecord) {
     commissionRecord.betAmount += req.body.totalBet; // Update the betAmount
 } else {
     // If no record for today exists, create a new one
-    referrer.commissionRecords.push({
-        date: today,
-        level: i + 1, 
-        uid: req.user.uid,
-        commission: commission,
-        betAmount: req.body.totalBet,
-    });
+    // Only if the uid of the referrer matches the uid of the user who placed the bet
+    if (referrer.uid === req.user.uid) {
+        referrer.commissionRecords.push({
+            date: today,
+            level: i + 1, 
+            uid: req.user.uid,
+            commission: commission,
+            betAmount: req.body.totalBet,
+        });
+    }
 }
 
 
