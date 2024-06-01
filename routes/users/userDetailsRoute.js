@@ -29,7 +29,7 @@ router.get("/total-registrations", auth, async (req, res) => {
 });
 
 // have to add auth middleware
-router.get("/todays-registrations", async (req, res) => {
+router.get("/todays-registrations",auth, async (req, res) => {
   try {
     const twentyFourHoursAgo = new Date(new Date() - 24 * 60 * 60 * 1000);
 
