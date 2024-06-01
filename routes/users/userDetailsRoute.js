@@ -12,6 +12,7 @@ require("dotenv").config();
 router.get("/total-registrations", auth, async (req, res) => {
   try {
     const userDetails = await User.find();
+    console.log("token is --->",userDetails.token)
     if (!userDetails) {
       console.log("No user found in the DB");
     }
