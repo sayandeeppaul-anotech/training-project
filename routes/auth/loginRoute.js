@@ -33,6 +33,7 @@ router.post('/login', async(req, res) => {
                 expires : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
                 httpOnly: true
             }
+        console.log("my token is ---->",token)
             res.status(200).cookie('token', token, option).json({
                 success: true,
                 token,
