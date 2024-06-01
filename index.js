@@ -10,7 +10,7 @@ const { setupWebSocket } = require("./websockets/websocket");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const routes = require("./routes/Routes");
-
+const path = require('path');
 // ----------------------------------------------------------------------------------------
 
 app.use(express.json());
@@ -23,9 +23,13 @@ app.use(
 );
 app.use(logger);
 app.use(routes);
-
+app.use(express.static(path.join(__dirname, 'build')));
 db.connectDB();
 setupWebSocket(server);
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running at http://0.0.0.0:${PORT}`);
