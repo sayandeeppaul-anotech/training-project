@@ -128,8 +128,8 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.get("/dashboard", auth, (req, res) => {
-  res.send("Welcome to dashboard");
-});
+// router.get("/dashboard", auth, (req, res) => {
+//   res.send("Welcome to dashboard");
+// });
 
 module.exports = router;
