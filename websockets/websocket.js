@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
 const { createTimer, calculateRemainingTime, secondsToHms } = require('../controllers/cronJobControllers');
 const { createTimer1, calculateRemainingTime1, secondsToHms1 } = require('../controllers/cronjobTRXController');
+const { createTimer2, calculateRemainingTime2, secondsToHms2 } = require('../controllers/K3cronjobController') 
 
 const mongoose = require('mongoose');
 const async = require('async');
@@ -49,16 +50,20 @@ function setupWebSocket(server) {
     
     
     
-    createTimer(Timer1Min, 1, '1min'); // 1 min
-    createTimer(Timer3Min, 3, '3min'); // 3 min
-    createTimer(Timer5Min, 5, '5min'); // 5 min
-    createTimer(Timer10Min, 10, '10min'); // 10 min
+    // createTimer(Timer1Min, 1, '1min'); // 1 min
+    // createTimer(Timer3Min, 3, '3min'); // 3 min
+    // createTimer(Timer5Min, 5, '5min'); // 5 min
+    // createTimer(Timer10Min, 10, '10min'); // 10 min
 
-    createTimer1(Timer1Min, 1, '1min'); // 1 min
-    createTimer1(Timer3Min, 3, '3min'); // 3 min
-    createTimer1(Timer5Min, 5, '5min'); // 5 min
-    createTimer1(Timer10Min, 10, '10min'); // 10 min
+    // createTimer1(Timer1Min, 1, '1min'); // 1 min
+    // createTimer1(Timer3Min, 3, '3min'); // 3 min
+    // createTimer1(Timer5Min, 5, '5min'); // 5 min
+    // createTimer1(Timer10Min, 10, '10min'); // 10 min
     
+    createTimer2(Timer1Min, 1, '1min'); // 1 min
+    createTimer(Timer3Min, 3, '3min'); // 3 min
+     createTimer2(Timer5Min, 5, '5min'); // 5 min
+     createTimer2(Timer10Min, 10, '10min'); // 10 min
     
     
     
