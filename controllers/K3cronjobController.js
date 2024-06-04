@@ -34,7 +34,7 @@ async function getLatestPeriodId2(timer) {
       throw new Error("Invalid timer specified");
   }
   const latestTimer = await timerModel.findOne().sort({ _id: -1 });
-  return latestTimer.periodId;
+  return latestTimer ? latestTimer.periodId : null;
 }
 
 const createTimer2 = (TimerModel, interval, timerName) => {
@@ -44,130 +44,55 @@ const createTimer2 = (TimerModel, interval, timerName) => {
     await TimerModel.create({ periodId });
 
     setTimeout(async () => {
-      const userBets = await k3betmodel.find({ periodId: periodId });
+      const userBets = await k3betmodel.find({ periodId });
 
-      // Separate bets into two sections
-      const totalSumBets = userBets.filter(bet => bet.selectedItem === "totalSum");
-      const otherBets = userBets.filter(bet => bet.selectedItem !== "totalSum");
-
-      // Determine the least betted outcome for totalSum section
-      const totalSumCounts = {};
-      totalSumBets.forEach(bet => {
-        if (!totalSumCounts[bet.totalSum]) totalSumCounts[bet.totalSum] = 0;
-        totalSumCounts[bet.totalSum]++;
+      // Calculate total bet amounts for each number
+      const totalBetAmounts = Array.from({ length: 16 }, () => 0); // Initialize array for 16 numbers from 3 to 18
+      userBets.forEach(bet => {
+        totalBetAmounts[bet.option - 3] += bet.betAmount; // Adjust index to start from 0 for number 3
       });
 
-      let leastBettedTotalSum;
-      if (Object.keys(totalSumCounts).length > 0) {
-        leastBettedTotalSum = Object.keys(totalSumCounts).reduce((a, b) => totalSumCounts[a] <= totalSumCounts[b] ? a : b);
-      } else {
-        leastBettedTotalSum = null; // Handle the case when no bets are placed on totalSum
-      }
+      // Find the least inputted totalsum number
+      const leastInputtedTotalSum = totalBetAmounts.indexOf(Math.min(...totalBetAmounts)) + 3; // Adjust index back to represent number 3
 
-      // Determine the least betted outcome for other section
-      const otherCounts = { twoSameOneDifferent: 0, threeSame: 0, threeDifferentNumbers: 0, size: 0, parity: 0 };
-      otherBets.forEach(bet => otherCounts[bet.selectedItem]++);
-
-      let leastBettedOtherItem;
-      if (Object.keys(otherCounts).length > 0) {
-        leastBettedOtherItem = Object.keys(otherCounts).reduce((a, b) => otherCounts[a] <= otherCounts[b] ? a : b);
-      } else {
-        leastBettedOtherItem = null; // Handle the case when no bets are placed on other items
-      }
-
-      // Generate dice outcomes based on the least betted outcomes
-      const bias = Math.random() < 0.5; // 50% chance to bias towards least betted outcomes
+      // Initialize dice outcomes
       let diceOutcomeD1, diceOutcomeD2, diceOutcomeD3;
 
-      if (bias && leastBettedTotalSum !== null) {
-        let totalSum = parseInt(leastBettedTotalSum, 10) || 0; // Provide default value if null
-        do {
-          diceOutcomeD1 = Math.ceil(Math.random() * 6);
-          diceOutcomeD2 = Math.ceil(Math.random() * 6);
-          diceOutcomeD3 = totalSum - diceOutcomeD1 - diceOutcomeD2;
-        } while (diceOutcomeD3 < 1 || diceOutcomeD3 > 6);
+      // Ensure the user's total sum number is divided into three dice outcomes
+      if (leastInputtedTotalSum % 3 === 0) {
+        // If the user's total sum number is divisible by 3, divide it equally among three dice outcomes
+        diceOutcomeD1 = diceOutcomeD2 = diceOutcomeD3 = leastInputtedTotalSum / 3;
       } else {
-        diceOutcomeD1 = Math.ceil(Math.random() * 6);
-        diceOutcomeD2 = Math.ceil(Math.random() * 6);
-        diceOutcomeD3 = Math.ceil(Math.random() * 6);
+        // If the user's total sum number is not divisible by 3, adjust the dice outcomes accordingly
+        const remainder = leastInputtedTotalSum % 3;
+        diceOutcomeD1 = diceOutcomeD2 = leastInputtedTotalSum - remainder; // d1 and d2 together cover the divisible part
+        diceOutcomeD3 = remainder; // Assign the remainder to d3
       }
 
-      let totalSum = diceOutcomeD1 + diceOutcomeD2 + diceOutcomeD3;
-      let size = totalSum > 10 ? "Big" : "Small";
-      let parity = totalSum % 2 === 0 ? "Even" : "Odd";
-      let twoSameOneDifferent = (diceOutcomeD1 === diceOutcomeD2 && diceOutcomeD1 !== diceOutcomeD3) ||
-                                (diceOutcomeD1 === diceOutcomeD3 && diceOutcomeD1 !== diceOutcomeD2) ||
-                                (diceOutcomeD2 === diceOutcomeD3 && diceOutcomeD2 !== diceOutcomeD1);
-      let threeSame = diceOutcomeD1 === diceOutcomeD2 && diceOutcomeD1 === diceOutcomeD3;
-      let threeDifferentNumbers = diceOutcomeD1 !== diceOutcomeD2 && diceOutcomeD1 !== diceOutcomeD3 && diceOutcomeD2 !== diceOutcomeD3;
-
+      // Save dice outcomes in the ResultK3 model
       const K3Results = new K3Result({
         timerName: timerName,
         periodId: periodId,
-        diceOutcomeD1: diceOutcomeD1,
-        diceOutcomeD2: diceOutcomeD2,
-        diceOutcomeD3: diceOutcomeD3,
-        totalSum: totalSum,
-        size: size,
-        parity: parity,
-        twoSameOneDifferent: twoSameOneDifferent,
-        threeSame: threeSame,
-        threeDifferentNumbers: threeDifferentNumbers,
+        totalSum: leastInputtedTotalSum,
+        size: leastInputtedTotalSum === 3 || leastInputtedTotalSum === 18 ? "Big" : "Small",
+        parity: leastInputtedTotalSum % 2 === 0 ? "Even" : "Odd",
+        diceOutcome: [diceOutcomeD1, diceOutcomeD2, diceOutcomeD3]
       });
       await K3Results.save();
       console.log(`K3 Timer ${timerName} & ${periodId} ended.`);
-      
+
+      // Process user bets
       if (userBets.length === 0) {
         console.log(`No bets for ${timerName} & ${periodId}`);
       } else {
         console.log(`Processing bets for ${timerName} & ${periodId}`, userBets);
       }
-
       for (let bet of userBets) {
         let userWon = false;
         let winAmount = 0;
 
-        switch (bet.selectedItem) {
-          case "totalSum":
-            if (bet.totalSum === totalSum) {
-              userWon = true;
-              winAmount = bet.betAmount * bet.multiplier;
-            }
-            break;
-          case "twoSameOneDifferent":
-            if (twoSameOneDifferent) {
-              userWon = true;
-              winAmount = bet.betAmount * bet.multiplier;
-            }
-            break;
-          case "threeSame":
-            if (threeSame) {
-              userWon = true;
-              winAmount = bet.betAmount * bet.multiplier;
-            }
-            break;
-          case "threeDifferentNumbers":
-            if (threeDifferentNumbers) {
-              userWon = true;
-              winAmount = bet.betAmount * bet.multiplier;
-            }
-            break;
-          case "size":
-            if (bet.size === size) {
-              userWon = true;
-              winAmount = bet.betAmount * bet.multiplier;
-            }
-            break;
-          case "parity":
-            if (bet.parity === parity) {
-              userWon = true;
-              winAmount = bet.betAmount * bet.multiplier;
-            }
-            break;
-          default:
-            break;
-        }
-        if (bet.selectedItem === "totalSum" && bet.totalSum === parseInt(leastBettedTotalSum, 10)) {
+        // Check if user's bet matches the least inputted totalsum number
+        if (parseInt(bet.option) === leastInputtedTotalSum) {
           userWon = true;
           winAmount = bet.betAmount * bet.multiplier;
         }
@@ -178,7 +103,7 @@ const createTimer2 = (TimerModel, interval, timerName) => {
             user.walletAmount += winAmount;
             await user.save();
             bet.winLoss = "win";
-            bet.status = "won"; // Update status to 'won'
+            bet.status = "won";
           }
         } else {
           bet.winLoss = "loss";
@@ -193,6 +118,7 @@ const createTimer2 = (TimerModel, interval, timerName) => {
   const job = cron.schedule(cronInterval, jobFunction);
   job.start();
 };
+
 
 const calculateRemainingTime2 = (periodId, minutes) => {
   const endtime = moment(periodId, "YYYYMMDDHHmmss").add(minutes, "minutes");

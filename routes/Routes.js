@@ -29,7 +29,8 @@ const ShowSavings = require('./wallet/SavingsAmount')
 const trxresult = require('../TRXResult/TRXResult')
 const wingoresult = require('./wingo/wingoResultroute')
 const k3result = require('../K3Resut/K3ResultRoute')
-
+const K3betgame = require('../K3Resut/K3BetRoute')
+const k3bethistory = require('../K3Resut/K3betHistory')
 router.use('/', registerRoute);
 router.use('/', loginRoute);
 router.use('/', logoutRoute);
@@ -57,6 +58,8 @@ router.use('/',ShowSavings)
 router.use('/',trxresult)
 router.use('/',wingoresult)
 router.use('/',k3result)
+router.use('/',K3betgame)
+router.use('/',k3bethistory)
 
 
 

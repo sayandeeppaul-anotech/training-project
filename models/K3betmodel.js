@@ -12,7 +12,7 @@ const K3betSchema = mongoose.Schema({
     totalBet: Number,
     tax: Number,
     fee: { type: String, default: '2%'},
-    periodId: Number,
+    periodId: String,
     timestamp: { type: Date, default: Date.now },
     diceOutcomeD1: Number,
     diceOutcomeD2: Number,

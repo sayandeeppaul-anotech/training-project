@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middlewares/auth");
 const User = require("../models/userModel");
-const k3betmodel = require("../models/K3betmodel");
+const k3betmodel = require('../models/K3betmodel')
 
 router.post("/K3betgame", auth, async (req, res) => {
   try {
