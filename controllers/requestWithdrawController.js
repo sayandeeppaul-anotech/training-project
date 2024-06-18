@@ -1,5 +1,7 @@
 const Withdraw = require("../models/withdrawModel");
 const User = require("../models/userModel");
+const Bet = require("../models/betsModel");
+const DepositHistory = require("../models/depositHistoryModel");
 
 const requestWithdraw = async (req, res) => {
   let savedRequest;
@@ -7,10 +9,48 @@ const requestWithdraw = async (req, res) => {
     const userId = req.user._id;
     const userDetail = await User.find({ _id: userId });
     const balance = req.body.balance;
-    if (userDetail[0].walletAmount < balance) {
+
+    let totalBetAmount = await Bet.aggregate([
+      { $match: { userId: userId } },
+      { $group: { _id: null, total: { $sum: "$betAmount" } } },
+    ]);
+    
+    if (totalBetAmount.length === 0) {
+      totalBetAmount = [{ total: 0 }];
+    }
+const totalDepositAmount = await DepositHistory.aggregate([
+  { 
+    $match: { 
+      userId: userId,
+      depositStatus: 'completed' 
+    } 
+  },
+  { 
+    $group: { 
+      _id: null, 
+      total: { $sum: "$depositAmount" } 
+    } 
+  },
+]);
+
+
+console.log('Total bet amount:', totalBetAmount[0].total);
+console.log('Total deposit amount:', totalDepositAmount[0].total);
+console.log('Total bet amount type:', typeof totalBetAmount[0].total);
+console.log('Total deposit amount type:', typeof totalDepositAmount[0].total);
+if (
+  totalDepositAmount.length > 0 &&
+  totalBetAmount.length > 0 &&
+  totalDepositAmount[0].total > totalBetAmount[0].total
+) {
+  res.status(400).json({
+    success: false,
+    message: "You can't withdraw because your total deposit amount is greater than your total bet amount",
+  });
+} else if (userDetail[0].walletAmount < balance) {
       res.status(400).json({
         success: false,
-        message: "You have insufficient balance to withdrawl",
+        message: "You have insufficient balance to withdraw",
       });
     } else if (balance <= 300) {
       res.status(400).json({

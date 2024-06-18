@@ -25,10 +25,10 @@ const Getid = require('./Admin/UPIAddress')
 const transaction = require('./Admin/TransactionHistoryRoute')
 const Savings = require('./wallet/SavingsAmount')
 const ShowSavings = require('./wallet/SavingsAmount')
-
 const trxresult = require('../TRXResult/TRXResult')
 const wingoresult = require('./wingo/wingoResultroute')
 const k3result = require('../K3Resut/K3ResultRoute')
+const TrxResultRoute = require('../routes/Trx/TrxResultRoute')
 
 router.use('/', registerRoute);
 router.use('/', loginRoute);
@@ -57,5 +57,6 @@ router.use('/',ShowSavings)
 router.use('/',trxresult)
 router.use('/',wingoresult)
 router.use('/',k3result)
+router.use('/',TrxResultRoute)
 
 module.exports = router;

@@ -6,17 +6,72 @@ const auth = require("../../middlewares/auth");
 const Deposit = require("../../models/depositHistoryModel");
 const Commission = require("../../models/commissionModel");
 const MainLevelModel = require("../../models/levelSchema");
-const {
-  addTransactionDetails,
-} = require("../../controllers/TransactionHistoryControllers");
+const { addTransactionDetails} = require("../../controllers/TransactionHistoryControllers");
+const axios = require("axios");
+const querystring = require("querystring");
+require("dotenv").config();
+const crypto = require('crypto');
+const Payment = require("../../models/payment");
 
-router.post("/wallet", auth, async (req, res) => {
+const mchKey = process.env.API_KEY;
+const payHost = process.env.CALLBACK_URL ;
+
+
+
+
+
+function paramArraySign(paramArray, mchKey) {
+    const sortedKeys = Object.keys(paramArray).sort();
+    const md5str = sortedKeys.map(key => `${key}=${paramArray[key]}`).join('&');
+    const sign = crypto.createHash('md5').update(md5str + `&key=${mchKey}`).digest('hex').toUpperCase();
+    return sign;
+}
+
+router.post("/wallet", async (req, res) => {
   try {
-    const { amount } = req.body;
+    const resSign = req.query.sign;
+
+    if (!resSign) {
+        return res.status(400).send("fail(sign not exists)");
+    }
+
+    const paramArray = {};
+    const fields = [
+        "payOrderId", "income", "mchId", "appId", "productId", 
+        "mchOrderNo", "amount", "status", "channelOrderNo", 
+        "channelAttach", "param1", "param2", "paySuccTime", "backType"
+    ];
+
+    fields.forEach(field => {
+        if (req.query[field]) {
+            paramArray[field] = req.query[field];
+        }
+    });
+
+    const sign = paramArraySign(paramArray, mchKey);
+
+    if (resSign !== sign) {  // Signature verification failed
+        return res.status(400).send("fail(verify fail)");
+    }
+
+    // Check if payment already exists
+    const existingPayment = await Payment.findOne({ payOrderId: paramArray.payOrderId });
+    if (existingPayment) {
+        return res.status(400).json({ msg: "Payment already added" });
+    }
+
+    // If not, save the new payment
+    const newPayment = new Payment(paramArray);
+    await newPayment.save();
+
+    // Handle business logic here
+    console.log(paramArray);
+
+    const { amount, param1: userId, param2: depositId } = paramArray;
+
     if (!amount) {
       return res.status(400).json({ msg: "Amount is required" });
     }
-    const userId = req.user._id;
 
     // Fetch commission levels configuration
     const mainLevelConfig = await MainLevelModel.findOne();
@@ -37,12 +92,13 @@ router.post("/wallet", auth, async (req, res) => {
       (total, depositEntry) => total + depositEntry.depositAmount,
       0
     );
+
     const totalDeposit = totalPrevDepositAmount + amount;
 
     // Update user wallet and achievements based on levels
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $inc: { walletAmount: amount } },
+      { $inc: { walletAmount: amount/100 } },
       { new: true }
     );
 
@@ -54,16 +110,9 @@ router.post("/wallet", auth, async (req, res) => {
       await updatedUser.save();
     }
 
-    // Create deposit history
-    const depositHistory = new Deposit({
-      userId: userId,
-      depositAmount: amount,
-      depositDate: new Date(),
-      depositStatus: "completed",
-      depositId: "some-unique-id",
-      depositMethod: "some-method",
-    });
-    await depositHistory.save();
+    // Update deposit history status
+    await Deposit.updateOne({ userId: userId, _id: depositId }, { depositStatus: "completed" });
+
     addTransactionDetails(userId,amount,"deposit", new Date())
 
     // Distribute commission up the chain
@@ -85,7 +134,7 @@ router.post("/wallet", auth, async (req, res) => {
 
         // Update subordinate data
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        today.toLocaleDateString('en-IN');
 
         // Helper function to update or create an entry in the subordinates array
         const updateOrCreateSubordinateEntry = (
@@ -164,9 +213,67 @@ router.post("/wallet", auth, async (req, res) => {
   }
 });
 
-router.get("/deposit/history", auth,  async (req, res) => {
+router.post("/rejectDeposit", async (req, res) => {
+  try {
+    const { userId, depositId } = req.body;
+    if (!userId || !depositId) {
+      return res.status(400).json({ msg: "User ID and Deposit ID are required" });
+    }
+
+    // Update specific deposit status
+    await Deposit.updateOne({ userId: userId, _id: depositId }, { depositStatus: "failed" });
+
+    res.status(200).json({ msg: "Deposit status updated to failed" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server Error" });
+  }
+});
+
+router.post("/createDeposit", auth, async (req, res) => {
+  try {
+    const { amount,depositMethod,depositId } = req.body;
+    if (!amount) {
+      return res.status(400).json({ msg: "Amount is required" });
+    }
+    const userId = req.user._id;
+
+    // Create deposit history with status 'pending'
+    const depositHistory = new Deposit({
+      userId: userId,
+      uid: req.user.uid,
+      depositAmount: amount,
+      depositDate: new Date(),
+      depositStatus: "pending",
+      depositId: depositId,
+      depositMethod: depositMethod,
+    });
+    await depositHistory.save();
+
+    res.status(200).json({ msg: "Deposit created" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server Error" });
+  }
+});
+
+
+
+// Endpoint to get all deposit history for admin
+router.get("/admin/deposit/history",auth, isAdmin, async (req, res) => {
   try {
     const depositHistory = await Deposit.find();
+    res.status(200).json(depositHistory);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: "Server Error" });
+  }
+});
+
+
+router.get("/deposit/history", auth,  async (req, res) => {
+  try {
+    const depositHistory = await Deposit.find({ userId: req.user._id });
     res.status(200).json(depositHistory);
   } catch (err) {
     console.log(err);
@@ -407,5 +514,125 @@ router.get("/previous-day-stats", auth, async (req, res) => {
     res.status(500).json({ msg: "Server Error" });
   }
 });
+
+
+
+router.post('/user/bank-details', auth, async (req, res) => {
+  // Validate the incoming data
+  const { name, accountNo, ifscCode, mobile ,bankName} = req.body;
+  if (!name || !accountNo || !ifscCode || !mobile) {
+    return res.status(400).send('All fields are required');
+  }
+
+  // Create a new bank detail
+  const newBankDetail = { name, accountNo, ifscCode, mobile,bankName };
+
+  try {
+    // Find the user and push the new bank detail into the bankDetails array
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    // Check if the user already has bank details
+    if (user.bankDetails && user.bankDetails.length > 0) {
+      return res.status(400).send('Bank details already added. You cannot add more bank details.');
+    }
+
+    user.bankDetails.push(newBankDetail);
+    await user.save();
+
+    res.send(user);
+  } catch (err) {
+    res.status(500).send('Server error' + err.message);
+  }
+});
+
+router.get('/user/bank-details/show', auth, async (req, res) => {
+  try {
+    // Find the user
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    // Check if the user has bank details
+    if (!user.bankDetails || user.bankDetails.length === 0) {
+      return res.status(404).send('No bank details found for this user.');
+    }
+
+    // Send the bank details
+    res.send(user.bankDetails);
+  } catch (err) {
+    res.status(500).send('Server error' + err.message);
+  }
+});
+
+
+
+router.post('/deposit', auth, async (req, res) => {
+const { user, am, orderid, depositMethod } = req.body;
+const userId = req.user._id;
+
+  const depositHistory = new Deposit({
+    userId: userId,
+    uid: req.user.uid,
+    depositAmount: am,
+    depositDate: new Date(),
+    depositStatus: "pending",
+    depositId: orderid,
+    depositMethod: depositMethod,
+  });
+  await depositHistory.save();
+
+
+
+
+
+  const amountInCents = am * 100; // Convert amount to cents
+    const paramArray = {
+        mchId:process.env.MERCHANT_ID,
+        productId:8036,
+        mchOrderNo: Math.floor(Math.random() * 100000000000), // This will generate a random number between 0 and 99999999999
+        currency: 'INR',
+        amount: amountInCents.toString(),
+        returnUrl: 'https://sunpay.onrender.com/return_page.html',
+        notifyUrl: 'https://sunpay.onrender.com/api/pay/notify',
+        subject: 'online shopping',
+        body: 'something goods',
+        param1: userId,
+        param2: orderid,
+        reqTime: new Date().toISOString().replace(/[-T:.Z]/g, '').slice(0, 14) // Format yyyyMMddHHmmss
+    };
+
+    paramArray.sign = paramArraySign(paramArray, mchKey);
+
+    try {
+        const response = await axios.post(`${payHost}/api/pay/neworder`, new URLSearchParams(paramArray).toString(), {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+        res.send(response.data);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
+
+
+router.get('/user/depositHistory/sum', auth, async (req, res) => {
+  try {
+      const userId = req.user._id;
+      console.log(userId);
+      const depositHistories = await Deposit.find({ userId: userId });
+      const sum = depositHistories.reduce((total, deposit) => total + deposit.depositAmount, 0);
+      res.json({ totalDeposit: sum });
+  } catch (err) {
+      res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 
 module.exports = router;

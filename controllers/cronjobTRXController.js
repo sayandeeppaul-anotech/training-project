@@ -164,7 +164,7 @@ const createTimer1 = (TimerModel, interval, timerName) => {
     //         });
     //     }
     //   }
-console.log('inside')
+// console.log('inside')
       const trxBlockAddress = Math.floor(
         Math.random() * 90000000 + 10000000
       ).toString();
@@ -184,7 +184,7 @@ console.log('inside')
       });
 
       await gameResult.save();
-      console.log('---->',gameResult)
+      // console.log('---->',gameResult)
 
       // K3 game logic
       const diceOutcome = [
@@ -208,7 +208,7 @@ console.log('inside')
       resultK3.save();
     }, interval * 60 * 1000); // Wait for the end of the period
 
-    console.log(`Timer ${timerName} & ${periodId}  started.`);
+    // console.log(`Timer ${timerName} & ${periodId}  started.`);
   };
 
   // Run the job function immediately

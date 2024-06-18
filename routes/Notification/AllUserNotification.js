@@ -5,8 +5,6 @@ const auth = require('../../middlewares/auth')
 const {isAdmin} = require('../../middlewares/roleSpecificMiddleware')
 const User = require('../../models/userModel')
 
-
-////// Create message for all users //////////////////
 router.post('/createNotification', auth, isAdmin, async (req, res) => {
     try {
         const { title, message } = req.body;

@@ -5,19 +5,14 @@ const Commission = require("../../models/commissionModel");
 const auth = require("../../middlewares/auth");
 const moment = require("moment");
 
+
 router.get("/api/subordinates", auth, async (req, res) => {
-  // Assume user._id is attached to the request, e.g., through a session or a token
   const userId = req.user._id;
 
   if (!userId) {
     return res.status(401).json({ message: "User not authenticated" });
   }
   try {
-    // Calculate the date 7 days ago
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 2);
-
-    // Find the user and filter subordinates based on the date
     const user = await User.findById(
       userId,
       "directSubordinates teamSubordinates -_id"
@@ -27,25 +22,37 @@ router.get("/api/subordinates", auth, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const filterSubordinates = (subordinate) => subordinate.date > sevenDaysAgo;
+    const sumValues = (subordinates) => {
+      return subordinates.reduce(
+        (acc, curr) => {
+          acc.noOfRegister += curr.noOfRegister;
+          acc.depositNumber += curr.depositNumber;
+          acc.depositAmount += curr.depositAmount;
+          acc.firstDeposit += curr.firstDeposit;
+          acc.level += curr.level;
+          return acc;
+        },
+        {
+          noOfRegister: 0,
+          depositNumber: 0,
+          depositAmount: 0,
+          firstDeposit: 0,
+          level: 0,
+        }
+      );
+    };
 
-    // Filter the direct and team subordinates
-    const recentDirectSubordinates =
-      user.directSubordinates.filter(filterSubordinates);
-    const recentTeamSubordinates =
-      user.teamSubordinates.filter(filterSubordinates);
+    const totalDirectSubordinates = sumValues(user.directSubordinates);
+    const totalTeamSubordinates = sumValues(user.teamSubordinates);
 
-    // Respond with the filtered data
     res.json({
-      recentDirectSubordinates,
-      recentTeamSubordinates,
+      totalDirectSubordinates,
+      totalTeamSubordinates,
     });
   } catch (error) {
-    // Handle any errors
     res.status(500).json({ message: error.message });
   }
 });
-
 router.get("/commission-stats", auth, async (req, res) => {
   try {
     const userId = req.user._id;
@@ -127,6 +134,16 @@ router.get('/user/totalcommission', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
+router.get('/users/referredUsers',auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate('referredUsers');
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+    res.send(user.referredUsers);
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
+});
 
 module.exports = router;

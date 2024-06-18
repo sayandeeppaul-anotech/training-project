@@ -3,6 +3,8 @@ const Bet = require('../../models/betsModel');
 const router = express.Router();
 const auth = require('../../middlewares/auth');
 const User = require('../../models/userModel');
+const { addTransactionDetails} = require("../../controllers/TransactionHistoryControllers");
+
 
 router.post('/wingobet', auth, async (req, res) => {
     try {
@@ -31,7 +33,7 @@ router.post('/wingobet', auth, async (req, res) => {
         });
 
         await bet.save();
-
+        addTransactionDetails(bet.userId,bet.totalBet,"Wingo", new Date())
         // Commission rates
         let commissionRates = [0.05, 0.04, 0.03, 0.02, 0.01]; // 5%, 4%, 3%, 2%, 1%
 

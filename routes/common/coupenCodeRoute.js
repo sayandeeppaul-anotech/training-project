@@ -4,6 +4,7 @@ const router = express.Router();
 const Coupon = require('../../models/coupon'); // Assuming you have a Coupon model
 const User =   require('../../models/userModel'); // Assuming you have a User model
 const auth = require('../../middlewares/auth');
+const { isAdmin } = require('../../middlewares/roleSpecificMiddleware');
 
 router.post('/create-coupon', async (req, res) => {
   const { code, bonusAmount, redemptionLimit } = req.body;
@@ -27,6 +28,17 @@ router.post('/redeem-coupon', auth, async (req, res) => {
   await coupon.save();
   res.send('Coupon redeemed');
 });
+
+
+router.get('/coupons-list', async (req, res) => {
+  try {
+    const coupons = await Coupon.find({});
+    res.json(coupons);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 module.exports = router;
 

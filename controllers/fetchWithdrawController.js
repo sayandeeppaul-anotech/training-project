@@ -3,7 +3,7 @@ const User = require("../models/userModel");
 
 exports.fetchWithdrawController = async (req, res) => {
   try {
-    const user = req.user;
+    const user = req.user._id;
     console.log("Hello");
     if (user.accountType === "Admin") {
       const withdrawals = await Withdraw.find();
@@ -12,9 +12,8 @@ exports.fetchWithdrawController = async (req, res) => {
         withdrawals,
       });
     } else {
-      const userWithdrawals = await Withdraw.find({
-        _id: { $in: user.withdrawRecords },
-      });
+      const userWithdrawals = await Withdraw.find({ userId:user});
+      console.log(userWithdrawals);
       res.status(200).json({
         success: true,
         userWithdrawals,
@@ -27,3 +26,5 @@ exports.fetchWithdrawController = async (req, res) => {
     });
   }
 };
+
+

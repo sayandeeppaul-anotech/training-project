@@ -1,4 +1,9 @@
 const mongoose = require("mongoose");
+const ReferredUser = require("./ReferredUser");
+
+function round(val) {
+  return Math.round(val * 100) / 100;
+}
 
 const subordinateSchema = new mongoose.Schema(
   
@@ -8,7 +13,7 @@ const subordinateSchema = new mongoose.Schema(
     depositAmount: { type: Number, default: 0 },
     firstDeposit: { type: Number, default: 0 },
     date: { type: Date, default: Date.now },
-    level: { type: Number, default: 1 }
+    level: { type: Number, default: 1 },
   },
   { _id: false }
 );
@@ -21,14 +26,14 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   uid: { type: String, required: true, unique: true },
   referralLink: { type: String, default: null },
-  walletAmount: { type: Number, default: 0 },
+  walletAmount: { type: Number, default: 0 ,set: round},
   accountType: {
     type: String,
     enum: ["Admin", "Normal", "Restricted"],
     default: "Normal"
   },
   lastBonusWithdrawal: { type: Date, default: null },
-  totalCommission: { type: Number, default: 0 },
+  totalCommission: { type: Number, default: 0 ,set: round},
   avatar: { type: String, default: null },
   token: { type: String, default: null },
   directSubordinates: [subordinateSchema],
@@ -45,6 +50,11 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  locked: {
+    type: Boolean,
+    default: false,
+  },
+  referredUsers: [ReferredUser.schema],
   commissionRecords: [
     {
       level: Number,
@@ -61,6 +71,13 @@ const userSchema = new mongoose.Schema({
       ref: "notify"
     }
   ],
+  bankDetails: [{
+    name: String,
+    accountNo: String,
+    ifscCode: String,
+    mobile: String,
+    bankName: String,
+  }],
   withdrawRecords: [
     {
       type: mongoose.Schema.Types.ObjectId,

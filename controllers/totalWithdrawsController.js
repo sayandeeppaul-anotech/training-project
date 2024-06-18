@@ -3,7 +3,6 @@ const User = require("../models/userModel");
 
 exports.totalWithdrawsController = async (req, res) => {
   try {
-    console.log("inside this");
     const completedWithdraws = await Withdraw.find({ status: "Completed" });
     let totalCompletedWithdrawlLength = completedWithdraws.length;
     let getTotalWithdrawCompletedAmount = 0;

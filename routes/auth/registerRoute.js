@@ -3,8 +3,9 @@ const router = express.Router();
 const User = require("../../models/userModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const auth = require("../../middlewares/auth");
 require("dotenv").config();
+
+
 
 function generateUsername() {
   const randomNumbers = Math.floor(Math.random() * 10000);
@@ -33,7 +34,7 @@ function generateProfilePicture(req) {
 
 router.post("/register", async (req, res) => {
   try {
-    const { mobile, password, invitecode, accountType = "Admin" } = req.body;
+    const { mobile, password, invitecode, accountType = "Normal" } = req.body;
 
     if (!mobile || !password) {
       return res.status(400).json({ msg: "All fields are required" });
@@ -69,15 +70,37 @@ router.post("/register", async (req, res) => {
 
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: 3600 });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {  expiresIn: 3600 * 10  });
     user.token = token;
     user.password = undefined;
+
 
     if (referrer) {
       let currentReferrer = referrer;
       let level = 1;
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // set time to 00:00:00
+      today.toLocaleDateString('en-IN');
+    
+      while (currentReferrer && level <= 5) {
+        const referredUserData = {
+          mobile,
+          uid: user.uid,
+          date: today,
+          level
+        };
+    
+        currentReferrer.referredUsers.push(referredUserData);
+    
+        await currentReferrer.save();
+        currentReferrer = await User.findById(currentReferrer.referrer);
+        level++;
+      }
+    }
+    if (referrer) {
+      let currentReferrer = referrer;
+      let level = 1;
+      const today = new Date();
+      today.toLocaleDateString('en-IN');
 
       while (currentReferrer && level <= 5) {
         const subordinateData = {
@@ -89,6 +112,7 @@ router.post("/register", async (req, res) => {
           level: level
         };
 
+        
         if (level === 1) {
           const existingDirectSubordinate = currentReferrer.directSubordinates.find(
             (sub) => sub.date.getTime() === today.getTime()
@@ -108,9 +132,10 @@ router.post("/register", async (req, res) => {
             existingTeamSubordinate.noOfRegister++;
           } else {
             currentReferrer.teamSubordinates.push(subordinateData);
+            
           }
         }
-
+      
         await currentReferrer.save();
         currentReferrer = await User.findById(currentReferrer.referrer);
         level++;
@@ -128,8 +153,5 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.get("/dashboard", auth, (req, res) => {
-  res.send("Welcome to dashboard");
-});
 
 module.exports = router;

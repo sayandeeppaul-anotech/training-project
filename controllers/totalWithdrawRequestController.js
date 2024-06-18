@@ -2,7 +2,6 @@ const Withdraw = require("../models/withdrawModel");
 const User = require("../models/userModel");
 exports.totalWithdrawRequestController = async (req, res) => {
   try {
-    console.log("inside this");
     // const pendingWithdrawRequestArray =[]
     const pendingWithdraws = await Withdraw.find({ status: "Pending" });
     let totalPendingWithdrawalLength = pendingWithdraws.length;

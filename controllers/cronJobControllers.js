@@ -1,7 +1,4 @@
 const WingoResult = require("../models/wingoResultModel");
-const K3Result = require("../models/K3ResultModel");
-const TrxResult = require("../models/trxResultModel");
-const crypto = require("crypto");
 const cron = require("node-cron");
 const moment = require("moment");
 const Bets = require("../models/betsModel");
@@ -14,21 +11,14 @@ function secondsToHms(d) {
 }
 
 async function getLatestPeriodId(timer) {
-  let timerModel;
-  switch (timer) {
-    case "1min":
-      timerModel = Timer1Min;
-      break;
-    case "3min":
-      timerModel = Timer3Min;
-      break;
-    case "5min":
-      timerModel = Timer5Min;
-      break;
-    case "10min":
-      timerModel = Timer10Min;
-      break;
-  }
+  const timerModels = {
+    "1min": Timer1Min,
+    "3min": Timer3Min,
+    "5min": Timer5Min,
+    "10min": Timer10Min,
+  };
+  
+  const timerModel = timerModels[timer];
   const latestTimer = await timerModel.find().sort({ _id: -1 }).limit(1);
   return latestTimer[0].periodId;
 }
@@ -41,65 +31,83 @@ const createTimer = (TimerModel, interval, timerName) => {
     await TimerModel.create({ periodId });
 
     setTimeout(async () => {
-      // Fetch all the bets where selectedItem is a number and periodId matches the current periodId
-      const numberBets = await Bets.find({
-        periodId,
-        selectedItem: { $regex: /^[0-9]$/ },
+      const bets = await Bets.find({ periodId });
+      const numberBetSums = Array.from({ length: 10 }, (_, i) => ({ number: i.toString(), totalBet: 0 }));
+      const sizeBetSums = { big: 0, small: 0 };
+      const colorBetSums = { green: 0, red: 0, violet: 0 };
+
+
+  
+
+      
+      bets.forEach((bet) => {
+        if (/^[0-9]$/.test(bet.selectedItem)) {
+          numberBetSums[parseInt(bet.selectedItem)].totalBet += bet.totalBet;
+        } else if (bet.selectedItem in sizeBetSums) {
+          sizeBetSums[bet.selectedItem] += bet.totalBet;
+        } else if (bet.selectedItem in colorBetSums) {
+          colorBetSums[bet.selectedItem] += bet.totalBet;
+        }
       });
 
-      // Initialize betCounts with all numbers set to 0
-      const betCounts = Array.from({ length: 10 }, (_, i) =>
-        i.toString()
-      ).reduce((counts, number) => {
-        counts[number] = 0;
-        return counts;
-      }, {});
+      const getLeastBetSum = (betSums) => {
+        if (Array.isArray(betSums)) {
+          return betSums.reduce((min, item) => (item.totalBet < min.totalBet ? item : min), betSums[0]).number;
+        } else {
+          return Object.keys(betSums).reduce((min, item) => (betSums[item] < betSums[min] ? item : min));
+        }
+      };
+     
 
-      // Count the bets for each number
-      numberBets.forEach((bet) => {
-        betCounts[bet.selectedItem]++;
-      });
+      let colorOutcome = null;
+      let numberOutcome = null;
+      let sizeOutcome = null;
 
-      // Find the number(s) with the least bets
-      const minBetCount = Math.min(...Object.values(betCounts));
-      const leastBetNumbers = Object.keys(betCounts).filter(
-        (number) => betCounts[number] === minBetCount
-      );
-
-      // If there are multiple numbers with the least bets, pick one randomly
-      let numberOutcome;
-      if (leastBetNumbers.length > 0) {
-        const randomIndex = Math.floor(Math.random() * leastBetNumbers.length);
-        numberOutcome = leastBetNumbers[randomIndex];
-      } else {
-        // If no bets are placed on any number, pick a random number as numberOutcome
-        numberOutcome = Math.floor(Math.random() * 10).toString();
+      if (bets.length === 0) {
+        let colors = ["red", "green", "violet"];
+        let sizes = ["big", "small"];
+        colorOutcome = colors[Math.floor(Math.random() * colors.length)];
+        sizeOutcome = sizes[Math.floor(Math.random() * sizes.length)];
+      }else{
+        console.log("-----> called")
+       colorOutcome = getLeastBetSum(colorBetSums);
+       sizeOutcome = getLeastBetSum(sizeBetSums); 
+       numberOutcome = getLeastBetSum(numberBetSums);
       }
-      let sizeOutcome = parseInt(numberOutcome) < 5 ? "small" : "big";
 
-      let colorOutcome;
-      switch (numberOutcome) {
-        case "1":
-        case "3":
-        case "7":
-        case "9":
-          colorOutcome = "green";
-          break;
-        case "2":
-        case "4":
-        case "6":
-        case "8":
-          colorOutcome = "red";
-          break;
-        case "0":
-          colorOutcome = ["red", "violet"];
-          break;
-        case "5":
-          colorOutcome = ["green", "violet"];
-          break;
-        default:
-          colorOutcome = "unknown";
+      if (colorOutcome === "red" && sizeOutcome === "big") {
+        let outcomes = [6, 8];
+       numberOutcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+    } else if (colorOutcome === "green" && sizeOutcome === "small") {
+       let outcomes = [1, 3];
+        numberOutcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+    } else if (colorOutcome === "violet" && sizeOutcome === "small") {
+        numberOutcome = "0";
+    } else if (colorOutcome === "violet" && sizeOutcome === "big") {
+        numberOutcome = "5";
+    } else if (colorOutcome === "red" && sizeOutcome === "small") {
+       let outcomes = [2, 4, 0];
+        numberOutcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+    } else if (colorOutcome === "green" && sizeOutcome === "small") {
+        let outcomes = [1, 3];
+        numberOutcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+    } else if (colorOutcome === "violet" && sizeOutcome === "small") {
+        numberOutcome = "0";
+    } else if (colorOutcome === "green" && sizeOutcome === "big") {
+        let outcomes = [7, 9, 5];
+        numberOutcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+    }
+    
+     if (numberOutcome === "0") {
+        colorOutcome = ["violet", "red"];
+      }else if (numberOutcome === "5") {
+        colorOutcome = ["violet", "green"];
       }
+  
+    
+      console.log("colorOutcome", colorOutcome);
+      console.log("numberOutcome", numberOutcome);
+      console.log("sizeOutcome", sizeOutcome);
 
       await WingoResult.create({
         timer: timerName,
@@ -109,122 +117,45 @@ const createTimer = (TimerModel, interval, timerName) => {
         sizeOutcome,
       });
 
-      console.log(`Timer ${timerName} & ${periodId} ended.`);
-      // check for this periodId in the bets model
-      const bets = await Bets.find({ periodId: periodId });
+      if (bets.length > 0) {
+        const processBetResults = async (bet) => {
+          let winLoss = 0;
+          let status = "Failed";
+          let result = numberOutcome;
 
-      if (bets.length === 0) {
-        console.log(`No bets for ${timerName} & ${periodId}`);
-        return;
-      } else {
-        console.log(`Bets for ${timerName} & ${periodId} found.`);
-        if (bets.length > 0) {
-          bets
-            .filter((bet) => bet.selectedTimer === timerName) // Only include bets that match the current timer
-            .forEach(async (bet) => {
-              let winLoss = 0;
-              let status = "FAIL"; // Default status to 'lost'
-              let result = numberOutcome;
-              if (bet.selectedItem === numberOutcome) {
-                winLoss =
-                  typeof bet.totalBet === "number"
-                    ? (bet.totalBet * 9).toString()
-                    : "0"; // 9 times if numberOutcome
-              } else if (bet.selectedItem === colorOutcome) {
-                winLoss =
-                  typeof bet.totalBet === "number"
-                    ? (bet.totalBet * 2).toString()
-                    : "0"; // 2 times if colorOutcome
-              } else if (bet.selectedItem === sizeOutcome) {
-                winLoss =
-                  typeof bet.totalBet === "number"
-                    ? (bet.totalBet * 2).toString()
-                    : "0"; // 2 times if sizeOutcome
-              }
+          if (bet.selectedItem === numberOutcome) {
+            winLoss = bet.totalBet * 9;
+          } else if (colorOutcome.includes(bet.selectedItem)) {
+            winLoss = bet.totalBet * 2;
+          } else if (bet.selectedItem === sizeOutcome) {
+            winLoss = bet.totalBet * 2;
+          }
 
-              if (winLoss !== 0) {
-                // Update the user's walletAmount
-                const user = await User.findById(bet.userId);
-                if (user) {
-                  user.walletAmount += Number(winLoss); // Convert winLoss back to a number before adding it to walletAmount
-                  await user.save();
-                }
-                status = "WIN"; // Update status to 'win' if the user has won
-              } else {
-                winLoss =
-                  typeof bet.totalBet === "number"
-                    ? (bet.totalBet * -1).toString()
-                    : "0"; // Set winLoss to negative if the user loses
-              }
-              await Bets.findByIdAndUpdate(bet._id, {
-                status,
-                winLoss,
-                result,
-              });
-            });
-        }
+          if (winLoss !== 0) {
+            const user = await User.findById(bet.userId);
+            if (user) {
+              user.walletAmount += winLoss;
+              await user.save();
+            }
+            status = "Succeed";
+          } else {
+            winLoss = bet.totalBet * -1;
+          }
+
+          await Bets.findByIdAndUpdate(bet._id, { status, winLoss, result });
+        };
+
+        await Promise.all(bets.filter((bet) => bet.selectedTimer === timerName).map(processBetResults));
       }
-console.log('inside')
-      const trxBlockAddress = Math.floor(
-        Math.random() * 90000000 + 10000000
-      ).toString();
-      const blockTime = moment().format("HH:mm:ss");
-      const hash = crypto.randomBytes(20).toString("hex");
-      const numberOutcomeGameResult = hash.match(/\d(?=[^\d]*$)/)[0];
-
-      const gameResult = new TrxResult({
-        timer: timerName,
-        periodId,
-        colorOutcome,
-        numberOutcome: numberOutcomeGameResult,
-        sizeOutcome,
-        trxBlockAddress,
-        blockTime,
-        hash,
-      });
-
-      await gameResult.save();
-      console.log('---->',TrxResult)
-
-      // K3 game logic
-      const diceOutcome = [
-        Math.ceil(Math.random() * 6),
-        Math.ceil(Math.random() * 6),
-        Math.ceil(Math.random() * 6),
-      ];
-      const totalSum = diceOutcome.reduce((a, b) => a + b, 0);
-      const size = totalSum < 15 ? "Small" : "Big";
-      const parity = totalSum % 2 === 0 ? "Even" : "Odd";
-
-      const resultK3 = new K3Result({
-        timerName: timerName,
-        periodId: periodId,
-        totalSum: totalSum,
-        size: size,
-        parity: parity,
-        diceOutcome: diceOutcome,
-      });
-
-      resultK3.save();
-    }, interval * 60 * 1000); // Wait for the end of the period
-
-    console.log(`Timer ${timerName} & ${periodId}  started.`);
+    }, interval * 60 * 1000);
   };
 
-  // Run the job function immediately
   jobFunction();
-
-  const job = cron.schedule(cronInterval, jobFunction);
-
-  // Start the cron job
-  job.start();
+  cron.schedule(cronInterval, jobFunction).start();
 };
 
 const calculateRemainingTime = (periodId, minutes) => {
-  const endTime = moment(periodId, "YYYY-MM-DD-HH-mm-ss").add(
-    minutes,
-    "minutes"
-  );
+  const endTime = moment(periodId, "YYYY-MM-DD-HH-mm-ss").add(minutes, "minutes");
   const now = moment();
   const diff = endTime.diff(now, "seconds");
   return diff > 0 ? diff : 0;
